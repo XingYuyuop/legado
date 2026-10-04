@@ -257,6 +257,10 @@
     <string name="source_mirror">Mirror %1$s</string>
     <string name="ping_testing">testing…</string>
     <string name="ping_timeout">timeout</string>
+    <string name="update_mirrors">Download mirrors</string>
+    <string name="update_mirrors_default_summary">Default %1$d mirrors, tap to edit</string>
+    <string name="update_mirrors_custom_summary">Custom %1$d mirrors, tap to edit</string>
+    <string name="update_mirrors_edit_message">One mirror prefix per line, the prefix will be prepended to the download URL. Clear all to restore defaults. (Mirrors expire often, edit when they break)</string>
     <string name="camera_scan">Scan QR code</string>
     <string name="scan_image">Scan local images</string>
     <string name="rule_summary">Rules description</string>

@@ -3,7 +3,9 @@ package io.legado.app.ui.about
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.widget.EditText
 import androidx.annotation.StringRes
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -12,7 +14,10 @@ import io.legado.app.constant.AppConst.appInfo
 import io.legado.app.constant.AppLog
 import io.legado.app.help.CrashHandler
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.coroutine.Coroutine
+import io.legado.app.help.update.AppUpdate
+import io.legado.app.lib.dialogs.alert
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.compress.ZipUtils
@@ -39,6 +44,7 @@ class AboutFragment : PreferenceFragmentCompat() {
         addPreferencesFromResource(R.xml.about)
         findPreference<Preference>("update_log")?.summary =
             "${getString(R.string.version)} ${appInfo.versionName}"
+        updateMirrorSummary()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -52,6 +58,7 @@ class AboutFragment : PreferenceFragmentCompat() {
             "update_log" -> showMdFile(getString(R.string.update_log), "updateLog.md")
             "check_update" -> checkAppUpdate()
             "check_beta_update" -> checkAppUpdate(beta = true)
+            "update_mirrors" -> showUpdateMirrorsDialog()
             "mail" -> requireContext().sendMail(getString(R.string.email))
             "license" -> showMdFile(getString(R.string.license), "LICENSE.md")
             "disclaimer" -> showMdFile(getString(R.string.disclaimer), "disclaimer.md")
@@ -67,6 +74,49 @@ class AboutFragment : PreferenceFragmentCompat() {
     @Suppress("SameParameterValue")
     private fun openUrl(@StringRes addressID: Int) {
         requireContext().openUrl(getString(addressID))
+    }
+
+    private fun updateMirrorSummary() {
+        val custom = customUpdateMirrorList()
+        findPreference<Preference>("update_mirrors")?.summary =
+            if (custom.isEmpty()) {
+                getString(R.string.update_mirrors_default_summary, AppUpdate.defaultMirrors.size)
+            } else {
+                getString(R.string.update_mirrors_custom_summary, custom.size)
+            }
+    }
+
+    private fun customUpdateMirrorList(): List<String> {
+        return LocalConfig.updateMirrors
+            ?.split("\n", ";")
+            ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+            .orEmpty()
+    }
+
+    private fun showUpdateMirrorsDialog() {
+        val currentText = customUpdateMirrorList()
+            .takeIf(List<String>::isNotEmpty)
+            ?.joinToString("\n")
+            ?: AppUpdate.defaultMirrors.joinToString("\n")
+        val editText = EditText(requireContext()).apply {
+            setText(currentText)
+            setSingleLine(false)
+            minLines = 10
+            gravity = Gravity.TOP or Gravity.START
+            textSize = 13f
+        }
+        requireContext().alert(
+            getString(R.string.update_mirrors),
+            getString(R.string.update_mirrors_edit_message)
+        ) {
+            customView { editText }
+            okButton {
+                LocalConfig.updateMirrors = editText.text.toString()
+                updateMirrorSummary()
+                toastOnUi(R.string.success)
+            }
+            cancelButton()
+        }
     }
 
     /**

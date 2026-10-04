@@ -92,6 +92,19 @@ by appCtx.getSharedPreferences("local", Context.MODE_PRIVATE) {
             }
         }
 
+    /**
+     * 自定义更新下载镜像前缀，换行分隔，空/null时使用 AppUpdate.defaultMirrors
+     */
+    var updateMirrors: String?
+        get() = getString("updateMirrors", null)
+        set(value) {
+            if (value.isNullOrBlank()) {
+                remove("updateMirrors")
+            } else {
+                putString("updateMirrors", value)
+            }
+        }
+
     val isFirstOpenApp: Boolean
         get() {
             val value = getBoolean("firstOpen", true)

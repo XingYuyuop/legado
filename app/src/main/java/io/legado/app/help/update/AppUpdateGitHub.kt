@@ -6,6 +6,7 @@ import io.legado.app.R
 import io.legado.app.constant.AppConst
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.coroutine.Coroutine
+import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.http.newCallResponse
 import io.legado.app.help.http.okHttpClient
 import io.legado.app.help.http.text
@@ -110,11 +111,11 @@ object AppUpdateGitHub : AppUpdate.AppUpdateInterface {
 internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.UpdateInfo {
     // 默认使用GitHub原始地址下载；镜像列表在更新对话框内展示并测速，可自由选择
     val primaryUrl = downloadUrl
-    val mirrors = if (isBeta) emptyList() else listOf(
-        "https://ghfast.top/$downloadUrl",
-        "https://gh-proxy.com/$downloadUrl",
-        "https://gh.llkk.cc/$downloadUrl"
-    )
+    val mirrors = if (isBeta) {
+        emptyList()
+    } else {
+        updateMirrorPrefixes().map { it + downloadUrl }.distinct()
+    }
     return AppUpdate.UpdateInfo(
         tagName = versionName,
         updateLog = note,
@@ -128,4 +129,16 @@ internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.Upd
         createdAt = createdAt,
         isBeta = isBeta
     )
+}
+
+/**
+ * 更新下载镜像前缀：用户自定义优先(关于-下载镜像编辑)，留空使用默认列表
+ */
+internal fun updateMirrorPrefixes(): List<String> {
+    return LocalConfig.updateMirrors
+        ?.split("\n", ";")
+        ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+        ?.map { if (it.endsWith("/")) it else "$it/" }
+        ?.takeIf { it.isNotEmpty() }
+        ?: AppUpdate.defaultMirrors
 }

@@ -255,6 +255,10 @@
     <string name="source_mirror">镜像 %1$s</string>
     <string name="ping_testing">测速中…</string>
     <string name="ping_timeout">超时</string>
+    <string name="update_mirrors">下载镜像</string>
+    <string name="update_mirrors_default_summary">默认 %1$d 个镜像，点击编辑</string>
+    <string name="update_mirrors_custom_summary">自定义 %1$d 个镜像，点击编辑</string>
+    <string name="update_mirrors_edit_message">每行一个镜像前缀，下载时会拼在链接前面。全部清空则恢复默认列表。（公共镜像容易失效，失效后可在此编辑替换）</string>
     <string name="camera_scan">扫描二维码</string>
     <string name="scan_image">扫描本地图片</string>
     <string name="rule_summary">规则说明</string>
