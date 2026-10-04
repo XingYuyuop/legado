@@ -211,6 +211,8 @@ android {
     }
     lint { //忽略string翻译缺失，后面需要翻译时去掉，todo
         disable 'MissingTranslation'
+        // 关闭发布构建的lintVital检查：耗时长且曾导致CI在R8+lint并发阶段中断
+        checkReleaseBuilds false
     }
 }
 
