@@ -124,7 +124,8 @@ internal fun parseAssetVersionCode(assetName: String): Long {
 internal fun normalizeLegadoVersionName(versionName: String): String {
     val version = versionPattern.find(versionName)?.value ?: return versionName
     legacyDottedVersionPattern.matchEntire(version)?.let { match ->
-        return "3.${match.groupValues[1]}${match.groupValues[2].take(6)}"
+        // 保留完整日期时间（3.26.MMDDHHmm），保证同小时内多次构建可比较
+        return "3.${match.groupValues[1]}.${match.groupValues[2]}"
     }
     compactVersionPattern.matchEntire(version)?.let { match ->
         return "3.${match.groupValues[1].take(8)}"
