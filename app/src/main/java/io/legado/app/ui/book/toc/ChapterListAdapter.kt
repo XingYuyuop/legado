@@ -315,7 +315,7 @@ class ChapterListAdapter(context: Context, val callback: Callback) :
         holder.itemView.setOnLongClickListener {
             getItem(holder.layoutPosition)?.let { item ->
                 if (callback.isLocalBook) {
-                    callback.showChapterOperationDialog(item)
+                    callback.showChapterOperationDialog(item.chapter)
                 } else {
                     context.longToastOnUi(getDisplayTitle(item))
                 }

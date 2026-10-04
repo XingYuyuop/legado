@@ -1699,6 +1699,8 @@
     <string name="reader_menu_config">Customize reader menu</string>
     <string name="reader_menu_config_summary">Choose and reorder actions in the reader overflow menu</string>
     <string name="reader_menu_more">More</string>
+    <string name="menu_manage">Manage Menu</string>
+    <string name="menu_more">More Menu</string>
     <string name="reader_menu_all_features">All features</string>
     <string name="reader_menu_select_all">Show all actions</string>
     <string name="reader_menu_select_none">Move all actions to More</string>

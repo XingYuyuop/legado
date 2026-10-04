@@ -9,6 +9,7 @@ import androidx.preference.MultiSelectListPreference
 import androidx.preference.PreferenceGroup
 import androidx.preference.Preference
 import io.legado.app.R
+import io.legado.app.base.BaseActivity
 import io.legado.app.base.BaseFragment
 import io.legado.app.constant.EventBus
 import io.legado.app.constant.PreferKey
@@ -247,30 +248,54 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
 
         override fun onPreferenceTreeClick(preference: Preference): Boolean {
             when (preference.key) {
-                "myMore" -> startActivity<ConfigActivity> { putExtra("configTag", ConfigTag.MY_MORE) }
+                "myMore" -> startActivity<ConfigActivity> {
+                    putExtra("configTag", ConfigTag.MY_MORE)
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
                 "check_update" -> checkAppUpdate()
                 "check_beta_update" -> checkAppUpdate(beta = true)
-                "bookSourceManage" -> startActivity<BookSourceActivity>()
-                "autoTaskManage" -> startActivity<AutoTaskActivity>()
-                "replaceManage" -> startActivity<ReplaceRuleActivity>()
-                "dictRuleManage" -> startActivity<DictRuleActivity>()
-                "txtTocRuleManage" -> startActivity<TxtTocRuleActivity>()
-                "bookmark" -> startActivity<AllBookmarkActivity>()
+                "bookSourceManage" -> startActivity<BookSourceActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "autoTaskManage" -> startActivity<AutoTaskActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "replaceManage" -> startActivity<ReplaceRuleActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "dictRuleManage" -> startActivity<DictRuleActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "txtTocRuleManage" -> startActivity<TxtTocRuleActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "bookmark" -> startActivity<AllBookmarkActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
                 "setting" -> startActivity<ConfigActivity> {
                     putExtra("configTag", ConfigTag.OTHER_CONFIG)
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
                 }
 
                 "web_dav_setting" -> startActivity<ConfigActivity> {
                     putExtra("configTag", ConfigTag.BACKUP_CONFIG)
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
                 }
 
                 "theme_setting" -> startActivity<ConfigActivity> {
                     putExtra("configTag", ConfigTag.THEME_CONFIG)
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
                 }
 
-                "fileManage" -> startActivity<FileManageActivity>()
-                "readRecord" -> startActivity<ReadRecordActivity>()
-                "about" -> startActivity<AboutActivity>()
+                "fileManage" -> startActivity<FileManageActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "readRecord" -> startActivity<ReadRecordActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
+                "about" -> startActivity<AboutActivity> {
+                    putExtra(BaseActivity.EXTRA_DISABLE_CLOSE_ANIM, true)
+                }
                 "exit" -> activity?.finish()
             }
             return super.onPreferenceTreeClick(preference)

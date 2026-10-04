@@ -173,6 +173,7 @@ object PreferKey {
     const val exportCharset = "exportCharset"
     const val exportUseReplace = "exportUseReplace"
     const val exportRemoveCoverAndIntro = "exportRemoveCoverAndIntro"
+    const val bookshelfMoreMenuItems = "bookshelfMoreMenuItems"
     const val useZhLayout = "useZhLayout"
     const val brightness = "brightness"
     const val nightBrightness = "nightBrightness"

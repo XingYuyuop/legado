@@ -205,11 +205,16 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
 
     override fun onCompatCreateOptionsMenu(menu: Menu) {
         menuInflater.inflate(R.menu.main_bookshelf, menu)
+        applyMoreMenuConfig(menu)
     }
 
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         super.onCompatOptionsItemSelected(item)
-        when (item.itemId) {
+        handleBookshelfMenuItem(item.itemId)
+    }
+
+    private fun handleBookshelfMenuItem(itemId: Int) {
+        when (itemId) {
             R.id.menu_remote -> startActivity<RemoteBookActivity>()
             R.id.menu_search -> startActivity<SearchActivity>()
             R.id.menu_update_toc -> activityViewModel.upToc(books, onlyUpdateRead)
@@ -237,6 +242,69 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
             R.id.menu_log -> showDialogFragment<AppLogDialog>()
             R.id.menu_backup -> backupData()
             R.id.menu_restore -> restoreData()
+            R.id.menu_main_menu_manage -> showMenuManageDialog()
+            R.id.menu_main_more -> showMoreMenu()
+        }
+    }
+
+    private fun bookshelfMovableMenuItems(): Map<String, Pair<Int, Int>> = listOf(
+        R.id.menu_backup to R.string.backup_data,
+        R.id.menu_restore to R.string.restore_data,
+        R.id.menu_update_toc to R.string.update_toc,
+        R.id.menu_add_local to R.string.book_local,
+        R.id.menu_remote to R.string.add_remote_book,
+        R.id.menu_add_url to R.string.add_url,
+        R.id.menu_bookshelf_manage to R.string.bookshelf_management,
+        R.id.menu_download to R.string.cache_export,
+        R.id.menu_group_manage to R.string.group_manage,
+        R.id.menu_bookshelf_layout to R.string.bookshelf_layout,
+        R.id.menu_export_bookshelf to R.string.export_bookshelf,
+        R.id.menu_import_bookshelf to R.string.import_bookshelf,
+        R.id.menu_log to R.string.log
+    ).associate { (menuId, titleRes) ->
+        resources.getResourceEntryName(menuId) to (menuId to titleRes)
+    }
+
+    private fun applyMoreMenuConfig(menu: Menu) {
+        val movable = bookshelfMovableMenuItems()
+        val moreIds = AppConfig.bookshelfMoreMenuItems
+        menu.findItem(R.id.menu_main_more)?.isVisible = moreIds.isNotEmpty()
+        moreIds.forEach { name ->
+            movable[name]?.first?.let { id -> menu.findItem(id)?.isVisible = false }
+        }
+    }
+
+    private fun showMenuManageDialog() {
+        val movable = bookshelfMovableMenuItems()
+        val names = movable.keys.toList()
+        val checked = names.map { it in AppConfig.bookshelfMoreMenuItems }.toBooleanArray()
+        alert(titleResource = R.string.menu_manage) {
+            multiChoiceItems(
+                names.map { getString(movable.getValue(it).second) }.toTypedArray(),
+                checked
+            ) { _, which, isChecked ->
+                checked[which] = isChecked
+            }
+            okButton {
+                AppConfig.bookshelfMoreMenuItems = names.filterIndexed { index, _ -> checked[index] }
+                supportToolbar?.menu?.let { menu ->
+                    movable.values.forEach { (id, _) -> menu.findItem(id)?.isVisible = true }
+                    applyMoreMenuConfig(menu)
+                }
+            }
+            cancelButton()
+        }
+    }
+
+    private fun showMoreMenu() {
+        val movable = bookshelfMovableMenuItems()
+        val moreItems = AppConfig.bookshelfMoreMenuItems.mapNotNull { movable[it] }
+        if (moreItems.isEmpty()) return
+        context?.selector(
+            title = getString(R.string.menu_more),
+            items = moreItems.map { getString(it.second) }
+        ) { _, index ->
+            handleBookshelfMenuItem(moreItems[index].first)
         }
     }
 

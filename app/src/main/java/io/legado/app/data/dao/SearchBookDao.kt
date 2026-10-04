@@ -86,7 +86,7 @@ interface SearchBookDao {
     fun getEnableHasCover(name: String, author: String): List<SearchBook>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(vararg searchBook: SearchBook)
+    fun insert(vararg searchBook: SearchBook): List<Long>
 
     @Query("delete from searchBooks where name = :name and author = :author")
     fun clear(name: String, author: String)

@@ -1585,6 +1585,8 @@
     <string name="reader_menu_config">自定义阅读菜单</string>
     <string name="reader_menu_config_summary">选择和调整阅读页右上角菜单中的操作</string>
     <string name="reader_menu_more">更多</string>
+    <string name="menu_manage">管理菜单</string>
+    <string name="menu_more">更多菜单</string>
     <string name="reader_menu_all_features">全部功能</string>
     <string name="reader_menu_select_all">全部显示</string>
     <string name="reader_menu_select_none">全部移至更多</string>

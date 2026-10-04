@@ -491,6 +491,13 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefBoolean(PreferKey.exportRemoveCoverAndIntro, value)
         }
 
+    var bookshelfMoreMenuItems: List<String>
+        get() = appCtx.getPrefString(PreferKey.bookshelfMoreMenuItems)
+            ?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+        set(value) {
+            appCtx.putPrefString(PreferKey.bookshelfMoreMenuItems, value.joinToString(","))
+        }
+
     var exportToWebDav: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.exportToWebDav)
         set(value) {

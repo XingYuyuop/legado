@@ -1,6 +1,7 @@
 package io.legado.app.base
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
@@ -59,6 +60,10 @@ abstract class BaseActivity<VB : ViewBinding>(
 
     protected abstract val binding: VB
 
+    companion object {
+        const val EXTRA_DISABLE_CLOSE_ANIM = "disableCloseAnim"
+    }
+
     val isInMultiWindow: Boolean
         @SuppressLint("ObsoleteSdkInt")
         get() {
@@ -103,6 +108,11 @@ abstract class BaseActivity<VB : ViewBinding>(
         }
         observeLiveBus()
         onActivityCreated(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            && intent.getBooleanExtra(EXTRA_DISABLE_CLOSE_ANIM, false)
+        ) {
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        }
     }
 
     /**
@@ -284,5 +294,11 @@ abstract class BaseActivity<VB : ViewBinding>(
     override fun finish() {
         currentFocus?.hideSoftInput()
         super.finish()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            && intent.getBooleanExtra(EXTRA_DISABLE_CLOSE_ANIM, false)
+        ) {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
     }
 }

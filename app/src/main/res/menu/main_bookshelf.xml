@@ -83,6 +83,18 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_main_menu_manage"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/menu_manage"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_main_more"
+        android:icon="@drawable/ic_more_vert"
+        android:title="@string/menu_more"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_log"
         android:icon="@drawable/ic_cfg_about"
         android:title="@string/log"
