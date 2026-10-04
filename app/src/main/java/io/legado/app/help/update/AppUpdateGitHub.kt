@@ -112,7 +112,6 @@ internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.Upd
     // 必须直接使用GitHub原始地址；ghfast.top作为菜单里的备用加速镜像
     val primaryUrl = downloadUrl
     val mirrorUrl = if (isBeta) null else "https://ghfast.top/$downloadUrl"
-    val alternateMirrorUrl = if (isBeta) null else "https://gh-proxy.com/$downloadUrl"
     return AppUpdate.UpdateInfo(
         tagName = versionName,
         updateLog = note,
@@ -120,9 +119,7 @@ internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.Upd
         fileName = name,
         backupDownloadUrl = null,
         mirrorDownloadUrl = mirrorUrl?.takeUnless { it == primaryUrl },
-        alternateMirrorDownloadUrl = alternateMirrorUrl?.takeUnless {
-            it == primaryUrl || it == mirrorUrl
-        },
+        alternateMirrorDownloadUrl = null,
         size = size,
         createdAt = createdAt,
         isBeta = isBeta
