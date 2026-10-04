@@ -508,11 +508,9 @@ class ReadBookActivity : BaseReadBookActivity(),
         unregisterReceiver(timeBatteryReceiver)
         upSystemUiVisibility()
         if (!BuildConfig.DEBUG && ReadBook.inBookshelf) {
-            if (AppConfig.syncBookProgressPlus) {
-                ReadBook.syncProgress()
-            } else {
-                ReadBook.uploadProgress()
-            }
+            // 退出时无条件上传本地进度。增强同步的syncProgress在服务器进度较新时会丢弃本地进度，
+            // 导致翻回早期章节后退出也无法覆盖服务器记录，下次打开又被拉回最新章节
+            ReadBook.uploadProgress()
         }
         if (!BuildConfig.DEBUG) {
             Backup.autoBack(this)
