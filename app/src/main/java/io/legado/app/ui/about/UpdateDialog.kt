@@ -48,7 +48,8 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
 
     override fun onStart() {
         super.onStart()
-        setLayout(0.9f, 0.8f)
+        // 高度按内容自适应，内容区最长55%屏高（超出的部分在ScrollTextView内滚动）
+        setLayout(0.9f, -2)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
@@ -73,10 +74,11 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                 .setMarkdown(binding.textView, updateBody)
         }
         binding.betaActions.isVisible = true
-        (binding.textView.layoutParams as LinearLayout.LayoutParams).apply {
-            height = 0
-            weight = 1f
+        binding.textView.layoutParams = (binding.textView.layoutParams as LinearLayout.LayoutParams).apply {
+            height = LinearLayout.LayoutParams.WRAP_CONTENT
+            weight = 0f
         }
+        binding.textView.maxHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
         binding.btnBetaCancel.setOnClickListener { dismiss() }
         binding.btnBetaUpdate.setText(R.string.beta_update_now)
         binding.btnBetaUpdate.setOnClickListener {
