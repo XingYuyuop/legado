@@ -16,10 +16,21 @@
     <io.legado.app.ui.widget.text.ScrollTextView
         android:id="@+id/text_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:padding="12dp"
         android:textColor="@color/secondaryText"
         android:textIsSelectable="true" />
+
+    <LinearLayout
+        android:id="@+id/source_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/beta_actions"

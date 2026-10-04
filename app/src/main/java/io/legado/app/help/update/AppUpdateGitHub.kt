@@ -108,18 +108,22 @@ object AppUpdateGitHub : AppUpdate.AppUpdateInterface {
 }
 
 internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.UpdateInfo {
-    // 上游CDN(cdn.mgz.la等)只代理官方仓库的文件，我们镜像仓库的文件不在其缓存范围内，
-    // 必须直接使用GitHub原始地址；ghfast.top作为菜单里的备用加速镜像
+    // 默认使用GitHub原始地址下载；镜像列表在更新对话框内展示并测速，可自由选择
     val primaryUrl = downloadUrl
-    val mirrorUrl = if (isBeta) null else "https://ghfast.top/$downloadUrl"
+    val mirrors = if (isBeta) emptyList() else listOf(
+        "https://ghfast.top/$downloadUrl",
+        "https://gh-proxy.com/$downloadUrl",
+        "https://gh.llkk.cc/$downloadUrl"
+    )
     return AppUpdate.UpdateInfo(
         tagName = versionName,
         updateLog = note,
         downloadUrl = primaryUrl,
         fileName = name,
         backupDownloadUrl = null,
-        mirrorDownloadUrl = mirrorUrl?.takeUnless { it == primaryUrl },
+        mirrorDownloadUrl = null,
         alternateMirrorDownloadUrl = null,
+        mirrorUrls = mirrors,
         size = size,
         createdAt = createdAt,
         isBeta = isBeta

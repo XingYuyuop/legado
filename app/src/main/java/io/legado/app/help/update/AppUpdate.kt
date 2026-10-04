@@ -20,6 +20,7 @@ object AppUpdate {
         val backupDownloadUrl: String? = null,
         val mirrorDownloadUrl: String? = null,
         val alternateMirrorDownloadUrl: String? = null,
+        val mirrorUrls: List<String> = emptyList(),
         val size: Long = 0L,
         val createdAt: Long = 0L,
         val isBeta: Boolean = false

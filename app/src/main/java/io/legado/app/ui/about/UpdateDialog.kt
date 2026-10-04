@@ -1,13 +1,19 @@
 package io.legado.app.ui.about
 
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogUpdateBinding
 import io.legado.app.help.config.LocalConfig
+import io.legado.app.help.http.okHttpClient
 import io.legado.app.help.update.AppUpdate
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.model.Download
@@ -20,9 +26,15 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.glide.GlideImagesPlugin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
 
 class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
 
@@ -32,23 +44,28 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
             putString("updateBody", updateInfo.updateLog)
             putString("url", updateInfo.downloadUrl)
             putString("name", updateInfo.fileName)
-            putString("backupUrl", updateInfo.backupDownloadUrl)
-            putString("mirrorUrl", updateInfo.mirrorDownloadUrl)
-            putString("alternateMirrorUrl", updateInfo.alternateMirrorDownloadUrl)
+            putStringArrayList("mirrors", ArrayList(updateInfo.mirrorUrls))
             putLong("size", updateInfo.size)
             putLong("createdAt", updateInfo.createdAt)
             putBoolean("isBeta", updateInfo.isBeta)
         }
     }
 
+    private data class SourceItem(val label: String, val url: String)
+
     val binding by viewBinding(DialogUpdateBinding::bind)
 
     private val isBetaUpdate: Boolean
         get() = arguments?.getBoolean("isBeta") == true
 
+    private val sources = ArrayList<SourceItem>()
+    private val radioButtons = ArrayList<Pair<String, RadioButton>>()
+    private val pingViews = HashMap<String, TextView>()
+    private var selectedUrl: String? = null
+
     override fun onStart() {
         super.onStart()
-        // 高度按内容自适应，内容区最长55%屏高（超出的部分在ScrollTextView内滚动）
+        // 高度按内容自适应，内容区占剩余空间（超出的部分在ScrollTextView内滚动）
         setLayout(0.9f, -2)
     }
 
@@ -74,59 +91,119 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                 .setMarkdown(binding.textView, updateBody)
         }
         binding.betaActions.isVisible = true
-        binding.textView.layoutParams = (binding.textView.layoutParams as LinearLayout.LayoutParams).apply {
-            height = LinearLayout.LayoutParams.WRAP_CONTENT
-            weight = 0f
-        }
-        binding.textView.maxHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
         binding.btnBetaCancel.setOnClickListener { dismiss() }
         binding.btnBetaUpdate.setText(R.string.beta_update_now)
         binding.btnBetaUpdate.setOnClickListener {
-            startDownload(arguments?.getString("url"))
+            startDownload(selectedUrl ?: arguments?.getString("url"))
         }
+        setupSourceRows()
+        setupMenu()
+    }
+
+    private fun setupSourceRows() {
+        val primaryUrl = arguments?.getString("url")?.takeIf(String::isNotBlank) ?: return
+        sources.apply {
+            clear()
+            add(SourceItem(getString(R.string.source_github_direct), primaryUrl))
+            arguments?.getStringArrayList("mirrors").orEmpty().forEach { mirrorUrl ->
+                val host = runCatching { URI(mirrorUrl).host }.getOrNull() ?: mirrorUrl
+                add(SourceItem(getString(R.string.source_mirror, host), mirrorUrl))
+            }
+        }
+        selectedUrl = primaryUrl
+        binding.sourceContainer.isVisible = true
+        sources.forEach { item ->
+            binding.sourceContainer.addView(createRow(item))
+        }
+        pingAll()
+    }
+
+    private fun createRow(item: SourceItem): View {
+        val row = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val pad = (10 * resources.displayMetrics.density).toInt()
+            setPadding(0, pad, 0, pad)
+            isClickable = true
+            isFocusable = true
+        }
+        val radioButton = RadioButton(requireContext()).apply {
+            isChecked = item.url == selectedUrl
+            isClickable = false
+        }
+        val nameView = TextView(requireContext()).apply {
+            text = item.label
+            textSize = 15f
+            setTextColor(requireContext().getColor(R.color.primaryText))
+        }
+        val pingView = TextView(requireContext()).apply {
+            text = getString(R.string.ping_testing)
+            textSize = 13f
+            setTextColor(requireContext().getColor(R.color.secondaryText))
+        }
+        row.addView(radioButton)
+        row.addView(nameView)
+        row.addView(
+            pingView,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+        row.setOnClickListener {
+            selectedUrl = item.url
+            radioButtons.forEach { (_, button) -> button.isChecked = false }
+            radioButton.isChecked = true
+        }
+        radioButtons.add(item.url to radioButton)
+        pingViews[item.url] = pingView
+        return row
+    }
+
+    private fun pingAll() {
+        val client = okHttpClient.newBuilder()
+            .callTimeout(3, TimeUnit.SECONDS)
+            .build()
+        sources.forEach { item ->
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val start = SystemClock.elapsedRealtime()
+                val ok = runCatching {
+                    client.newCall(Request.Builder().url(item.url).head().build())
+                        .execute().use { it.isSuccessful || it.code < 500 }
+                }.getOrDefault(false)
+                val cost = SystemClock.elapsedRealtime() - start
+                withContext(Dispatchers.Main) {
+                    pingViews[item.url]?.text =
+                        if (ok) "${cost}ms" else getString(R.string.ping_timeout)
+                }
+            }
+        }
+    }
+
+    private fun setupMenu() {
         binding.toolBar.inflateMenu(R.menu.app_update)
-        if (!isBetaUpdate) {
-            binding.toolBar.menu.findItem(R.id.menu_download).isVisible = false
-            binding.toolBar.menu.findItem(R.id.menu_download_backup).isVisible =
-                !arguments?.getString("backupUrl").isNullOrBlank()
-            binding.toolBar.menu.findItem(R.id.menu_download_mirror).isVisible =
-                !arguments?.getString("mirrorUrl").isNullOrBlank()
-            binding.toolBar.menu.findItem(R.id.menu_download_alternate_mirror).isVisible =
-                !arguments?.getString("alternateMirrorUrl").isNullOrBlank()
-            binding.toolBar.setOnMenuItemClickListener {
-                when (it.itemId) {
-                    R.id.menu_download -> startDownload(arguments?.getString("url"))
-                    R.id.menu_download_backup -> startDownload(arguments?.getString("backupUrl"))
-                    R.id.menu_download_mirror -> startDownload(arguments?.getString("mirrorUrl"))
-                    R.id.menu_download_alternate_mirror ->
-                        startDownload(arguments?.getString("alternateMirrorUrl"))
-                    R.id.menu_open_in_browser -> arguments?.getString("backupUrl").orEmpty()
-                        .ifBlank { arguments?.getString("url").orEmpty() }
-                        .takeIf(String::isNotBlank)
-                        ?.let { url -> requireContext().openUrl(url) }
-                    R.id.menu_ignore_version -> {
-                        LocalConfig.ignoreUpdateVersion = arguments?.getString("newVersion")
-                        toastOnUi(R.string.ignore_this_version)
-                        dismiss()
-                    }
+        // 下载源已由对话框内的源列表承担，菜单仅保留浏览器打开与忽略版本
+        binding.toolBar.menu.apply {
+            findItem(R.id.menu_download).isVisible = false
+            findItem(R.id.menu_download_backup).isVisible = false
+            findItem(R.id.menu_download_mirror).isVisible = false
+            findItem(R.id.menu_download_alternate_mirror).isVisible = false
+            findItem(R.id.menu_open_in_browser).isVisible = true
+            findItem(R.id.menu_ignore_version).isVisible = !isBetaUpdate
+        }
+        binding.toolBar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                R.id.menu_open_in_browser -> arguments?.getString("url")
+                    ?.takeIf(String::isNotBlank)
+                    ?.let { url -> requireContext().openUrl(url) }
+
+                R.id.menu_ignore_version -> {
+                    LocalConfig.ignoreUpdateVersion = arguments?.getString("newVersion")
+                    toastOnUi(R.string.ignore_this_version)
+                    dismiss()
                 }
-                return@setOnMenuItemClickListener true
             }
-        } else {
-            binding.toolBar.menu.findItem(R.id.menu_download).isVisible = false
-            binding.toolBar.menu.findItem(R.id.menu_download_backup).isVisible = false
-            binding.toolBar.menu.findItem(R.id.menu_download_mirror).isVisible = false
-            binding.toolBar.menu.findItem(R.id.menu_download_alternate_mirror).isVisible = false
-            binding.toolBar.menu.findItem(R.id.menu_open_in_browser).isVisible = true
-            binding.toolBar.menu.findItem(R.id.menu_ignore_version).isVisible = false
-            binding.toolBar.setOnMenuItemClickListener {
-                if (it.itemId == R.id.menu_open_in_browser) {
-                    arguments?.getString("url").orEmpty()
-                        .takeIf(String::isNotBlank)
-                        ?.let { url -> requireContext().openUrl(url) }
-                }
-                true
-            }
+            return@setOnMenuItemClickListener true
         }
     }
 
