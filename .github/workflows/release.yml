@@ -123,6 +123,20 @@ jobs:
           files: ${{ github.workspace }}/apk/legado_app_*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release To Mirror
+        if: ${{ env.product == 'app' }}
+        run: |
+          # 同步发布到公开镜像仓库，供应用内检查更新（AppUpdateGitHub）
+          if gh release view "$VERSION" -R XingYuyuop/legado-apk > /dev/null 2>&1; then
+            gh release delete "$VERSION" -R XingYuyuop/legado-apk --yes --cleanup-tag || true
+          fi
+          gh release create "$VERSION" apk/legado_app_*.apk \
+            -R XingYuyuop/legado-apk \
+            --title "legado_app_$VERSION" \
+            --notes-file CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
       
       - name: Prepare For GooglePlay
         if: env.product == 'google' && env.play == 'yes'
