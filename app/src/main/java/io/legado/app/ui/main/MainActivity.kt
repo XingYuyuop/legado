@@ -41,6 +41,7 @@ import io.legado.app.help.storage.Backup
 import io.legado.app.help.update.AppUpdate
 import io.legado.app.help.update.isIgnoredAppUpdate
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.service.BaseReadAloudService
 import io.legado.app.ui.about.CrashLogsDialog
@@ -396,10 +397,19 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
                         )
                     }
                     okButton {
-                        viewModel.restoreWebDav(
-                            lastBackupFile.displayName,
-                            lastBackupFile.lastModify,
-                        )
+                        selector(
+                            title = getString(R.string.restore_mode),
+                            items = listOf(
+                                getString(R.string.restore_normal),
+                                getString(R.string.restore_full)
+                            )
+                        ) { _, index ->
+                            viewModel.restoreWebDav(
+                                lastBackupFile.displayName,
+                                lastBackupFile.lastModify,
+                                index == 1
+                            )
+                        }
                     }
                 }
             }

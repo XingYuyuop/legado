@@ -352,9 +352,9 @@ class MainViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
-    fun restoreWebDav(name: String, restoredLastBackup: Long) {
+    fun restoreWebDav(name: String, restoredLastBackup: Long, isFullRestore: Boolean = false) {
         executeLazy {
-            AppWebDav.restoreWebDav(name)
+            AppWebDav.restoreWebDav(name, isFullRestore)
         }.onSuccess {
             LocalConfig.lastBackup = maxOf(LocalConfig.lastBackup, restoredLastBackup)
         }.onError {

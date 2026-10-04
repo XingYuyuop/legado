@@ -16,6 +16,8 @@ data class RemoteBook(
 
     val isDir get() = contentType == "folder"
 
+    val isApk: Boolean get() = filename.substringAfterLast(".", "").equals("apk", ignoreCase = true)
+
     constructor(webDavFile: WebDavFile) : this(
         webDavFile.displayName,
         webDavFile.path,

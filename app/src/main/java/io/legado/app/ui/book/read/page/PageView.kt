@@ -1,6 +1,8 @@
 package io.legado.app.ui.book.read.page
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.LayerDrawable
 import android.view.LayoutInflater
 import android.view.View
@@ -39,6 +41,7 @@ import io.legado.app.utils.dpToPx
 import io.legado.app.utils.gone
 import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.setTextIfNotEqual
+import io.legado.app.utils.visible
 import splitties.views.backgroundColor
 import java.util.Date
 
@@ -150,6 +153,7 @@ class PageView(context: Context) : FrameLayout(context) {
             )
             vwTopDivider.gone(llHeader.isGone || !it.showHeaderLine)
             vwBottomDivider.gone(llFooter.isGone || !it.showFooterLine)
+            upReturnIcon()
         }
         readerInfoValues = readerInfoValues.copy(
             time = timeFormat.format(Date(System.currentTimeMillis())),
@@ -192,6 +196,32 @@ class PageView(context: Context) : FrameLayout(context) {
         } else {
             ViewCompat.setOnApplyWindowInsetsListener(binding.vwRoot, null)
             binding.vwRoot.setPadding(0, 0, 0, 0)
+        }
+    }
+
+    fun upReturnIcon() = binding.run {
+        ReadBookConfig.let {
+            val tipColor = with(ReadTipConfig) {
+                if (tipColor == 0) it.textColor else tipColor
+            }
+            val show = it.showReturnIcon
+            val iconSize = it.returnIconSize.dpToPx()
+            val marginRight = it.returnIconMarginRight.dpToPx()
+            val marginTop = it.returnIconMarginTop.dpToPx()
+            val padding = 2.dpToPx()
+
+            ivReturnShelfHeader.apply {
+                isGone = !show || llHeader.isGone
+                setColorFilter(tipColor)
+                setBackgroundResource(android.R.color.transparent)
+                setPadding(padding, padding, padding, padding)
+                layoutParams = layoutParams.apply {
+                    width = iconSize + padding * 2
+                    height = iconSize + padding * 2
+                }
+                val lp = layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                lp?.setMargins(0, marginTop, marginRight, 0)
+            }
         }
     }
 
@@ -465,10 +495,61 @@ class PageView(context: Context) : FrameLayout(context) {
     }
 
     /**
+     * 判断触摸点是否在返回图标范围内
+     */
+    fun isTouchOnReturnIcon(x: Float, y: Float): Boolean {
+        if (binding.ivReturnShelfHeader.isGone) return false
+        val iconLocation = IntArray(2)
+        binding.ivReturnShelfHeader.getLocationOnScreen(iconLocation)
+        val pageLocation = IntArray(2)
+        getLocationOnScreen(pageLocation)
+        val touchScreenX = x.toInt() + pageLocation[0]
+        val touchScreenY = y.toInt() + pageLocation[1]
+        return touchScreenX >= iconLocation[0]
+            && touchScreenX <= iconLocation[0] + binding.ivReturnShelfHeader.width
+            && touchScreenY >= iconLocation[1]
+            && touchScreenY <= iconLocation[1] + binding.ivReturnShelfHeader.height
+    }
+
+    /**
+     * 设置返回图标按下状态
+     */
+    fun setReturnIconPressed(pressed: Boolean) {
+        binding.ivReturnShelfHeader.apply {
+            if (pressed) {
+                setColorFilter(Color.WHITE)
+                background = ColorDrawable(0xCC000000.toInt())
+            } else {
+                val tipColor = with(ReadTipConfig) {
+                    if (tipColor == 0) ReadBookConfig.textColor else tipColor
+                }
+                setColorFilter(tipColor)
+                setBackgroundResource(android.R.color.transparent)
+            }
+        }
+    }
+
+    /**
      * 优先处理页面内单击
      * @return true:已处理, false:未处理
      */
     fun onClick(x: Float, y: Float): Boolean {
+        if (!binding.ivReturnShelfHeader.isGone) {
+            val iconLocation = IntArray(2)
+            binding.ivReturnShelfHeader.getLocationOnScreen(iconLocation)
+            val pageLocation = IntArray(2)
+            getLocationOnScreen(pageLocation)
+            val touchScreenX = x.toInt() + pageLocation[0]
+            val touchScreenY = y.toInt() + pageLocation[1]
+            if (touchScreenX >= iconLocation[0]
+                && touchScreenX <= iconLocation[0] + binding.ivReturnShelfHeader.width
+                && touchScreenY >= iconLocation[1]
+                && touchScreenY <= iconLocation[1] + binding.ivReturnShelfHeader.height
+            ) {
+                activity?.finish()
+                return true
+            }
+        }
         return binding.contentTextView.click(x - imgBgPaddingStart, y - headerHeight)
     }
 
@@ -578,4 +659,12 @@ class PageView(context: Context) : FrameLayout(context) {
     val selectedText: String get() = binding.contentTextView.getSelectedText()
 
     val selectStartPos get() = binding.contentTextView.selectStart
+
+    fun showSyncProgress() {
+        binding.tvSyncProgress.visible()
+    }
+
+    fun hideSyncProgress() {
+        binding.tvSyncProgress.gone()
+    }
 }

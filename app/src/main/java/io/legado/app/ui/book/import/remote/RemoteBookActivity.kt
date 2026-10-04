@@ -1,12 +1,16 @@
 package io.legado.app.ui.book.import.remote
 
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.SubMenu
 import androidx.activity.addCallback
 import androidx.activity.viewModels
+import androidx.core.content.FileProvider
 import androidx.core.view.isGone
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,6 +21,7 @@ import io.legado.app.help.config.LocalConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.remote.RemoteBook
+import io.legado.app.model.remote.RemoteBookWebDav
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.import.BaseImportBookActivity
 import io.legado.app.ui.widget.SelectActionBar
@@ -25,9 +30,12 @@ import io.legado.app.utils.FileDoc
 import io.legado.app.utils.find
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.showHelp
+import io.legado.app.utils.toastOnUi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -250,6 +258,59 @@ class RemoteBookActivity : BaseImportBookActivity<RemoteBookViewModel>(),
                 }
             }
             noButton()
+        }
+    }
+
+    override fun downloadApk(remoteBook: RemoteBook) {
+        toastOnUi("开始下载: ${remoteBook.filename}")
+        binding.refreshProgressBar.isAutoLoading = true
+        lifecycleScope.launch {
+            try {
+                val apkFile = withContext(Dispatchers.IO) {
+                    downloadApkFile(remoteBook)
+                }
+                installApk(apkFile)
+            } catch (e: Exception) {
+                toastOnUi("下载失败: ${e.localizedMessage}")
+            } finally {
+                binding.refreshProgressBar.isAutoLoading = false
+            }
+        }
+    }
+
+    private suspend fun downloadApkFile(remoteBook: RemoteBook): File {
+        val webDav = viewModel.remoteBookWebDavInstance
+            ?: throw Exception("WebDav未初始化")
+        val tempDir = cacheDir
+        val apkFile = File(tempDir, remoteBook.filename)
+        withContext(Dispatchers.IO) {
+            val webdav = io.legado.app.lib.webdav.WebDav(
+                remoteBook.path,
+                webDav.authorization
+            )
+            webdav.downloadTo(apkFile.absolutePath, true)
+        }
+        return apkFile
+    }
+
+    private fun installApk(apkFile: File) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val uri = FileProvider.getUriForFile(
+                    this,
+                    io.legado.app.constant.AppConst.authority,
+                    apkFile
+                )
+                intent.setDataAndType(uri, "application/vnd.android.package-archive")
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } else {
+                intent.setDataAndType(Uri.fromFile(apkFile), "application/vnd.android.package-archive")
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (e: Exception) {
+            toastOnUi("安装失败: ${e.localizedMessage}")
         }
     }
 

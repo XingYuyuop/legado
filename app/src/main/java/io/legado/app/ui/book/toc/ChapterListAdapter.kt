@@ -314,7 +314,11 @@ class ChapterListAdapter(context: Context, val callback: Callback) :
         }
         holder.itemView.setOnLongClickListener {
             getItem(holder.layoutPosition)?.let { item ->
-                context.longToastOnUi(getDisplayTitle(item))
+                if (callback.isLocalBook) {
+                    callback.showChapterOperationDialog(item)
+                } else {
+                    context.longToastOnUi(getDisplayTitle(item))
+                }
             }
             true
         }
@@ -367,5 +371,7 @@ class ChapterListAdapter(context: Context, val callback: Callback) :
         fun onListChanged()
         fun onVolumeToggled(volumeIndex: Int)
         fun onItemsUpdated()
+        fun deleteChapter(bookChapter: BookChapter)
+        fun showChapterOperationDialog(bookChapter: BookChapter)
     }
 }

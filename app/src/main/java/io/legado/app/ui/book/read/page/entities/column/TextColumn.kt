@@ -109,7 +109,7 @@ data class TextColumn(
             )
         }
         if (selected) {
-            canvas.drawRect(start, 0f, end, textLine.height, view.selectedPaint)
+            canvas.drawLine(start, y + 14f, end, y + 14f, view.selectedPaint)
         }
     }
 

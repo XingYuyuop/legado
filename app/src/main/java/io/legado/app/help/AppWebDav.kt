@@ -120,13 +120,13 @@ object AppWebDav {
     }
 
     @Throws(WebDavException::class)
-    suspend fun restoreWebDav(name: String) {
+    suspend fun restoreWebDav(name: String, isFullRestore: Boolean = false) {
         authorization?.let {
             val webDav = WebDav(rootWebDavUrl + name, it)
             val archive = File.createTempFile("webdav-restore-", ".zip", appCtx.cacheDir)
             try {
                 webDav.downloadTo(archive.absolutePath, true)
-                Restore.restoreOrThrow(appCtx, Uri.fromFile(archive))
+                Restore.restoreOrThrow(appCtx, Uri.fromFile(archive), isFullRestore = isFullRestore)
             } finally {
                 archive.delete()
             }

@@ -11,6 +11,18 @@
         app:showAsAction="always" />
 
     <item
+        android:id="@+id/menu_backup"
+        android:icon="@drawable/ic_backup"
+        android:title="@string/backup_data"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_restore"
+        android:icon="@drawable/ic_restore"
+        android:title="@string/restore_data"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_update_toc"
         android:icon="@drawable/ic_refresh_black_24dp"
         android:title="@string/update_toc"

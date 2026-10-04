@@ -485,6 +485,12 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefBoolean(PreferKey.exportUseReplace, value)
         }
 
+    var exportRemoveCoverAndIntro: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.exportRemoveCoverAndIntro, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.exportRemoveCoverAndIntro, value)
+        }
+
     var exportToWebDav: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.exportToWebDav)
         set(value) {

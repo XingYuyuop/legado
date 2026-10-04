@@ -108,13 +108,24 @@ class BackupConfigFragment : PreferenceFragment(),
         it.uri?.let { uri ->
             waitDialog.setText("恢复中…")
             waitDialog.show()
-            val task = Coroutine.async {
-                Restore.restore(appCtx, uri)
-            }.onFinally {
-                waitDialog.dismiss()
+            val dialog = context?.alert(R.string.restore_mode) {
+                items(listOf(
+                    getString(R.string.restore_normal),
+                    getString(R.string.restore_full)
+                )) { _, index ->
+                    val isFullRestore = index == 1
+                    val task = Coroutine.async {
+                        Restore.restore(appCtx, uri, isFullRestore)
+                    }.onFinally {
+                        waitDialog.dismiss()
+                    }
+                    waitDialog.setOnCancelListener {
+                        task.cancel()
+                    }
+                }
             }
-            waitDialog.setOnCancelListener {
-                task.cancel()
+            dialog?.setOnCancelListener {
+                waitDialog.dismiss()
             }
         }
     }
@@ -648,16 +659,27 @@ class BackupConfigFragment : PreferenceFragment(),
     private fun restoreWebDav(name: String) {
         waitDialog.setText("恢复中…")
         waitDialog.show()
-        val task = Coroutine.async {
-            AppWebDav.restoreWebDav(name)
-        }.onError {
-            AppLog.put("WebDav恢复出错\n${it.localizedMessage}", it)
-            appCtx.toastOnUi("WebDav恢复出错\n${it.localizedMessage}")
-        }.onFinally {
-            waitDialog.dismiss()
+        val dialog = context?.alert(R.string.restore_mode) {
+            items(listOf(
+                getString(R.string.restore_normal),
+                getString(R.string.restore_full)
+            )) { _, index ->
+                val isFullRestore = index == 1
+                val task = Coroutine.async {
+                    AppWebDav.restoreWebDav(name, isFullRestore)
+                }.onError {
+                    AppLog.put("WebDav恢复出错\n${it.localizedMessage}", it)
+                    appCtx.toastOnUi("WebDav恢复出错\n${it.localizedMessage}")
+                }.onFinally {
+                    waitDialog.dismiss()
+                }
+                waitDialog.setOnCancelListener {
+                    task.cancel()
+                }
+            }
         }
-        waitDialog.setOnCancelListener {
-            task.cancel()
+        dialog?.setOnCancelListener {
+            waitDialog.dismiss()
         }
     }
 

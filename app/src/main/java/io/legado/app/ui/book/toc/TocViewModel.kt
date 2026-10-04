@@ -9,6 +9,7 @@ import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
+import io.legado.app.data.entities.BookChapter
 import io.legado.app.help.book.update
 import io.legado.app.help.book.isPdf
 import io.legado.app.help.book.isEpub
@@ -121,6 +122,31 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
 
     fun upChapterListAdapter() {
         chapterListCallBack?.upAdapter()
+    }
+
+    fun deleteChapter(bookUrl: String, index: Int, success: () -> Unit) {
+        execute {
+            val chapters = appDb.bookChapterDao.getChapterList(bookUrl)
+            appDb.bookChapterDao.delChapter(bookUrl, index)
+            chapters.filter { it.index > index }.forEach { chapter ->
+                chapter.index = chapter.index - 1
+            }
+            appDb.bookChapterDao.update(*chapters.filter { it.index > index - 1 }.toTypedArray())
+        }.onSuccess {
+            success()
+        }
+    }
+
+    fun updateChapterName(bookUrl: String, index: Int, newName: String, success: () -> Unit) {
+        execute {
+            val chapter = appDb.bookChapterDao.getChapter(bookUrl, index)
+            if (chapter != null) {
+                chapter.title = newName
+                appDb.bookChapterDao.update(chapter)
+            }
+        }.onSuccess {
+            success()
+        }
     }
 
     fun saveBookmark(treeUri: Uri) {

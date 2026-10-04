@@ -12,7 +12,6 @@ import android.view.WindowManager
 import android.view.animation.LinearInterpolator
 import androidx.activity.addCallback
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isGone
@@ -81,6 +80,8 @@ import io.legado.app.utils.toggleSystemBar
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.legado.app.utils.visible
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
@@ -118,7 +119,6 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
 
     private var justInitData: Boolean = false
     private var contentUpdateId = 0
-    private var syncDialog: AlertDialog? = null
     private val mScrollTimer by lazy {
         ScrollTimer(this, binding.recyclerView, lifecycleScope).apply {
             setSpeed(AppConfig.mangaAutoPageSpeed)
@@ -464,13 +464,18 @@ class ReadMangaActivity : VMBaseActivity<ActivityMangaBinding, ReadMangaViewMode
     }
 
     override fun sureNewProgress(progress: BookProgress) {
-        syncDialog?.dismiss()
-        syncDialog = alert(R.string.get_book_progress) {
-            setMessage(R.string.cloud_progress_exceeds_current)
-            okButton {
-                ReadManga.setProgress(progress)
-            }
-            noButton()
+        showSyncProgressTip()
+        ReadManga.setProgress(progress)
+    }
+
+    private var syncProgressTipJob: Job? = null
+
+    private fun showSyncProgressTip() {
+        syncProgressTipJob?.cancel()
+        binding.tvSyncProgress.visible()
+        syncProgressTipJob = lifecycleScope.launch {
+            delay(2000)
+            binding.tvSyncProgress.gone()
         }
     }
 

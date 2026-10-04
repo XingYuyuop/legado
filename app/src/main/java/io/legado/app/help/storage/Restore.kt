@@ -8,6 +8,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.google.gson.JsonElement
 import io.legado.app.BuildConfig
 import io.legado.app.R
+import io.legado.app.constant.AppConst
 import io.legado.app.constant.AppConst.androidId
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.PreferKey
@@ -147,8 +148,8 @@ object Restore {
 
     private const val TAG = "Restore"
 
-    suspend fun restore(context: Context, uri: Uri): Unit = backupRestoreMutex.withLock {
-        LogUtils.d(TAG, "开始恢复备份 uri:$uri")
+    suspend fun restore(context: Context, uri: Uri, isFullRestore: Boolean = false): Unit = backupRestoreMutex.withLock {
+        LogUtils.d(TAG, "开始恢复备份 uri:$uri, isFullRestore:$isFullRestore")
         kotlin.runCatching {
             extractBackup(context, uri)
         }.onFailure {
@@ -156,7 +157,7 @@ object Restore {
             return
         }
         kotlin.runCatching {
-            restoreUnpacked(Backup.backupPath)
+            restoreUnpacked(Backup.backupPath, isFullRestore = isFullRestore)
         }.onFailure {
             appCtx.toastOnUi("恢复备份出错\n${it.localizedMessage}")
             AppLog.put("恢复备份出错\n${it.localizedMessage}", it)
@@ -167,6 +168,7 @@ object Restore {
         context: Context,
         uri: Uri,
         lanTransfer: Boolean = false,
+        isFullRestore: Boolean = false,
     ) = backupRestoreMutex.withLock {
         LogUtils.d(TAG, "开始恢复备份 uri:$uri")
         val restorePath = if (lanTransfer) {
@@ -183,7 +185,7 @@ object Restore {
                     includeBackgrounds = !BackupConfig.ignoreReadConfig,
                 )
             }
-            restoreUnpacked(restorePath, lanTransfer)
+            restoreUnpacked(restorePath, lanTransfer, isFullRestore)
         } finally {
             if (lanTransfer) FileUtils.delete(restorePath)
         }
@@ -204,25 +206,25 @@ object Restore {
         }
     }
 
-    suspend fun restoreLocked(path: String, lanTransfer: Boolean = false) {
+    suspend fun restoreLocked(path: String, lanTransfer: Boolean = false, isFullRestore: Boolean = false) {
         backupRestoreMutex.withLock {
-            restoreUnpacked(path, lanTransfer)
+            restoreUnpacked(path, lanTransfer, isFullRestore)
         }
     }
 
-    private suspend fun restoreUnpacked(path: String, lanTransfer: Boolean = false) {
+    private suspend fun restoreUnpacked(path: String, lanTransfer: Boolean = false, isFullRestore: Boolean = false) {
         if (lanTransfer) {
             currentCoroutineContext().ensureActive()
             withContext(NonCancellable) {
                 restore(path, lanTransfer = true)
             }
         } else {
-            restore(path)
+            restore(path, isFullRestore = isFullRestore)
         }
         LocalConfig.lastBackup = System.currentTimeMillis()
     }
 
-    private suspend fun restore(path: String, lanTransfer: Boolean = false) {
+    private suspend fun restore(path: String, lanTransfer: Boolean = false, isFullRestore: Boolean = false) {
         val password = LocalConfig.password
         val aes = BackupAES(password)
         val backupRoot = File(path)
@@ -262,8 +264,8 @@ object Restore {
         }
         val restoredAutoTasks = fileToListT<AutoTaskRule>(path, "autoTask.json")
         val restoredBookUrls = hashSetOf<String>()
-        fileToListT<Book>(path, "bookshelf.json")?.let {
-            it.forEach { book ->
+        fileToListT<Book>(path, "bookshelf.json")?.let { backupBooks ->
+            backupBooks.forEach { book ->
                 if (lanTransfer) book.variable = null
                 book.upType()
                 book.normalizeLegacyPersistedCover()
@@ -274,13 +276,25 @@ object Restore {
                     remapRestoredCoverPath(coverPath, backupRoot, appCtx.externalFiles)
                 }
             }
-            it.filter { book -> book.isLocal }
+            backupBooks.filter { book -> book.isLocal }
                 .forEach { book ->
                     book.coverUrl = LocalBook.getCoverPath(book)
                 }
             val newBooks = arrayListOf<Book>()
             val ignoreLocalBook = BackupConfig.ignoreLocalBook
-            it.forEach { book ->
+
+            // 全量还原：删除不在备份中的书籍
+            if (isFullRestore) {
+                val backupBookUrls = backupBooks.map { it.bookUrl }.toSet()
+                val allLocalBooks = appDb.bookDao.all
+                allLocalBooks.forEach { localBook ->
+                    if (!backupBookUrls.contains(localBook.bookUrl)) {
+                        appDb.bookDao.delete(localBook)
+                    }
+                }
+            }
+
+            backupBooks.forEach { book ->
                 if (ignoreLocalBook && book.isLocal) {
                     return@forEach
                 }
@@ -329,6 +343,15 @@ object Restore {
                     remapRestoredCoverPath(coverPath, backupRoot, appCtx.externalFiles)
                 }
             }
+            // 全量还原：删除本地不在备份中的分组
+            if (isFullRestore) {
+                val backupGroupIds = groups.map { it.groupId }.toSet()
+                appDb.bookGroupDao.all.forEach { localGroup ->
+                    if (!backupGroupIds.contains(localGroup.groupId)) {
+                        appDb.bookGroupDao.delete(localGroup)
+                    }
+                }
+            }
             appDb.bookGroupDao.insert(*groups.toTypedArray())
         }
         fileToListT<BookSource>(path, "bookSource.json")?.let {
@@ -346,12 +369,30 @@ object Restore {
         fileToListT<RssStar>(path, "rssStar.json")?.let {
             appDb.rssStarDao.insert(*it.toTypedArray())
         }
-        fileToListT<ReplaceRule>(path, "replaceRule.json")?.let {
-            val insertedIds = appDb.replaceRuleDao.insert(*it.toTypedArray())
-            ReplacePreviewConfig.saveImportedSamples(it, insertedIds, clearMissing = true)
+        fileToListT<ReplaceRule>(path, "replaceRule.json")?.let { backupRules ->
+            // 全量还原：删除本地不在备份中的规则
+            if (isFullRestore) {
+                val backupRuleIds = backupRules.map { it.id }.toSet()
+                appDb.replaceRuleDao.all.forEach { localRule ->
+                    if (!backupRuleIds.contains(localRule.id)) {
+                        appDb.replaceRuleDao.delete(localRule)
+                    }
+                }
+            }
+            val insertedIds = appDb.replaceRuleDao.insert(*backupRules.toTypedArray())
+            ReplacePreviewConfig.saveImportedSamples(backupRules, insertedIds, clearMissing = true)
         }
-        fileToListT<SearchKeyword>(path, "searchHistory.json")?.let {
-            appDb.searchKeywordDao.insert(*it.toTypedArray())
+        fileToListT<SearchKeyword>(path, "searchHistory.json")?.let { backupKeywords ->
+            // 全量还原：删除本地不在备份中的搜索历史
+            if (isFullRestore) {
+                val backupWords = backupKeywords.map { it.word }.toSet()
+                appDb.searchKeywordDao.all.forEach { localKeyword ->
+                    if (!backupWords.contains(localKeyword.word)) {
+                        appDb.searchKeywordDao.delete(localKeyword)
+                    }
+                }
+            }
+            appDb.searchKeywordDao.insert(*backupKeywords.toTypedArray())
         }
         fileToListT<RuleSub>(path, "sourceSub.json")?.let {
             appDb.ruleSubDao.insert(*it.toTypedArray())
@@ -370,6 +411,10 @@ object Restore {
             appDb.keyboardAssistsDao.insert(*it.toTypedArray())
         }
         fileToListT<ReadRecord>(path, "readRecord.json")?.let {
+            // 全量还原：先清空本地记录，再插入备份记录
+            if (isFullRestore) {
+                appDb.readRecordDao.clear()
+            }
             it.forEach { readRecord ->
                 // Older backups omitted the device id; treat them as local records.
                 val normalizedRecord = if (readRecord.deviceId.isBlank()) {

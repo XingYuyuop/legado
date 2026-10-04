@@ -742,6 +742,30 @@ object ReadBookConfig {
             config.showFooterLine = value
         }
 
+    var showReturnIcon: Boolean
+        get() = config.showReturnIcon
+        set(value) {
+            config.showReturnIcon = value
+        }
+
+    var returnIconSize: Int
+        get() = config.returnIconSize
+        set(value) {
+            config.returnIconSize = value
+        }
+
+    var returnIconMarginRight: Int
+        get() = config.returnIconMarginRight
+        set(value) {
+            config.returnIconMarginRight = value
+        }
+
+    var returnIconMarginTop: Int
+        get() = config.returnIconMarginTop
+        set(value) {
+            config.returnIconMarginTop = value
+        }
+
     fun getExportConfig(): Config {
         normalizeUnderlineConfig()
         val exportConfig = durConfig.copy()
@@ -954,6 +978,10 @@ object ReadBookConfig {
         var footerPaddingTop: Int = 6,
         var showHeaderLine: Boolean = false,
         var showFooterLine: Boolean = true,
+        var showReturnIcon: Boolean = true,
+        var returnIconSize: Int = 24,
+        var returnIconMarginRight: Int = 4,
+        var returnIconMarginTop: Int = 0,
         var tipHeaderLeft: Int = ReadTipConfig.time,
         var tipHeaderMiddle: Int = ReadTipConfig.none,
         var tipHeaderRight: Int = ReadTipConfig.battery,

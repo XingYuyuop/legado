@@ -49,6 +49,7 @@ class RemoteBookWebDav(
             if (webDavFile.isDir
                 || bookFileRegex.matches(webDavFile.displayName)
                 || archiveFileRegex.matches(webDavFile.displayName)
+                || webDavFile.displayName.substringAfterLast(".", "").equals("apk", ignoreCase = true)
             ) {
                 //扩展名符合阅读的格式则认为是书籍
                 remoteBooks.add(RemoteBook(webDavFile))

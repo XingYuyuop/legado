@@ -93,6 +93,8 @@ class RemoteBookViewModel(application: Application) : BaseViewModel(application)
     }.flowOn(Dispatchers.IO)
 
     private var remoteBookWebDav: RemoteBookWebDav? = null
+    val remoteBookWebDavInstance: RemoteBookWebDav?
+        get() = remoteBookWebDav
     var isDefaultWebdav = false
 
     fun initData(onSuccess: () -> Unit) {

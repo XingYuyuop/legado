@@ -51,6 +51,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_export_remove_cover_intro"
+        android:checkable="true"
+        android:title="@string/export_remove_cover_intro"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_export_pics_file"
         android:checkable="true"
         android:title="@string/export_pics_file"

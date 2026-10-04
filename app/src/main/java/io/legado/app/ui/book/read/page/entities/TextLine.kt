@@ -358,7 +358,7 @@ data class TextLine(
         for (i in columns.indices) {
             val column = columns[i] as TextColumn
             if (column.selected) {
-                canvas.drawRect(column.start, 0f, column.end, height, view.selectedPaint)
+                canvas.drawLine(column.start, lineBase + 14f, column.end, lineBase + 14f, view.selectedPaint)
             }
         }
     }

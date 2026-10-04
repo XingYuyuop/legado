@@ -311,6 +311,7 @@ object LocalBook {
                 appDb.bookChapterDao.delByBook(bookUrl)
             }
         }
+        importChapters(book)
         return book
     }
 
@@ -323,6 +324,21 @@ object LocalBook {
             name = name, author = author, originName = file.name,
             latestChapterTime = file.lastModified, order = appDb.bookDao.minOrder - 1)
             .also(::upBookInfo)
+    }
+
+    /**
+     * 导入时加载章节列表
+     */
+    private fun importChapters(book: Book) {
+        kotlin.runCatching {
+            val chapters = getChapterList(book)
+            appDb.bookChapterDao.insert(*chapters.toTypedArray())
+            book.setUseReplaceRule(true)
+            appDb.bookDao.update(book)
+            AppLog.putDebug("本地书籍导入章节成功: ${book.name}, 共 ${chapters.size} 章")
+        }.onFailure {
+            AppLog.put("导入章节列表失败\n${it.localizedMessage}", it)
+        }
     }
 
     fun upBookInfo(book: Book) {

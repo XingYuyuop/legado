@@ -28,6 +28,7 @@ import io.legado.app.data.entities.ReadRecordShow
 import io.legado.app.data.entities.ReadRecordAuthors
 import io.legado.app.databinding.ActivityReadRecordBinding
 import io.legado.app.databinding.ItemReadRecordDisplayBinding
+import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.book.ReadRecordCoverCache
@@ -158,6 +159,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             }
 
             R.id.menu_clear_record -> clearRecords()
+
+            R.id.menu_del_short_time -> {
+                delShortTimeRecord()
+            }
         }
         return super.onCompatOptionsItemSelected(item)
     }
@@ -418,6 +423,29 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             }
         }
 
+    }
+
+    private fun delShortTimeRecord() {
+        alert(titleResource = R.string.del_short_time) {
+            val editBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
+                editView.hint = "输入分钟数"
+                editView.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            }
+            customView { editBinding.root }
+            okButton {
+                val minutes = editBinding.editView.text?.toString()?.toLongOrNull() ?: return@okButton
+                if (minutes > 0) {
+                    val timeMs = minutes * 60 * 1000
+                    lifecycleScope.launch {
+                        withContext(IO) {
+                            appDb.readRecordDao.deleteLessThan(timeMs)
+                        }
+                        initData()
+                    }
+                }
+            }
+            cancelButton()
+        }
     }
 
 }

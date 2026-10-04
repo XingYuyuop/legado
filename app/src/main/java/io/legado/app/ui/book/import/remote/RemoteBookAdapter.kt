@@ -49,6 +49,15 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
                     cbSelect.invisible()
                     llBrief.gone()
                     cbSelect.isChecked = false
+                } else if (item.isApk) {
+                    ivIcon.setImageResource(R.drawable.ic_download)
+                    ivIcon.visible()
+                    cbSelect.invisible()
+                    llBrief.visible()
+                    tvTag.text = "APK"
+                    tvSize.text = ConvertUtils.formatFileSize(item.size)
+                    tvDate.text = AppConst.dateFormat.format(item.lastModify)
+                    cbSelect.isChecked = false
                 } else {
                     if (item.isOnBookShelf) {
                         ivIcon.setImageResource(R.drawable.ic_book_has)
@@ -76,6 +85,8 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
             getItem(holder.layoutPosition)?.let {
                 if (it.isDir) {
                     callBack.openDir(it)
+                } else if (it.isApk) {
+                    callBack.downloadApk(it)
                 } else if (!it.isOnBookShelf) {
                     if (!selected.contains(it)) {
                         selected.add(it)
@@ -103,7 +114,7 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
     private fun upCheckableCount() {
         checkableCount = 0
         getItems().forEach {
-            if (!it.isDir && !it.isOnBookShelf) {
+            if (!it.isDir && !it.isOnBookShelf && !it.isApk) {
                 checkableCount++
             }
         }
@@ -114,7 +125,7 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
     fun selectAll(selectAll: Boolean) {
         if (selectAll) {
             getItems().forEach {
-                if (!it.isDir && !it.isOnBookShelf) {
+                if (!it.isDir && !it.isOnBookShelf && !it.isApk) {
                     selected.add(it)
                 }
             }
@@ -127,7 +138,7 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
 
     fun revertSelection() {
         getItems().forEach {
-            if (!it.isDir && !it.isOnBookShelf) {
+            if (!it.isDir && !it.isOnBookShelf && !it.isApk) {
                 if (selected.contains(it)) {
                     selected.remove(it)
                 } else {
@@ -153,5 +164,6 @@ class RemoteBookAdapter(context: Context, val callBack: CallBack) :
         fun upCountView()
         fun startRead(remoteBook: RemoteBook)
         fun addToBookShelfAgain(remoteBook: RemoteBook)
+        fun downloadApk(remoteBook: RemoteBook)
     }
 }

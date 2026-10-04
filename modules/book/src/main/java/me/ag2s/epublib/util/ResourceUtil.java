@@ -35,21 +35,11 @@ public class ResourceUtil {
      * @return 返回Resource
      */
     public static Resource createChapterResource(String title, String txt, String model, String href) {
-        //String[] title_list = title.split("\\s+", 2);
-        //String title_part1 = title_list[0];
-        //String title_part2 = "";
-        //if (title_list.length == 2) {
-        //    title_part2 = title_list[1];
-        //}
-        String ori_title = title;
-        title = title.replaceFirst("\\s+", "</span><br />");
-        if (title.contains("</span>")) {
-            title = "<span class=\"chapter-sequence-number\">" + title;
-        }
-        String html = model.replace("{title}", title)
-                .replace("{ori_title}", ori_title)
-                //.replace("{title_part1}", title_part1)
-                //.replace("{title_part2}", title_part2)
+        String[] titleParts = title.split("\\s+", 2);
+        String chapterNumber = titleParts[0];
+        String chapterName = titleParts.length > 1 ? titleParts[1] : "";
+        String html = model.replace("{title}", chapterNumber + "<br /><span style=\"font-size: 0.8em;\">" + chapterName + "</span>")
+                .replace("{ori_title}", title)
                 .replace("{content}", StringUtil.formatHtml(txt));
         return new Resource(html.getBytes(), href);
     }

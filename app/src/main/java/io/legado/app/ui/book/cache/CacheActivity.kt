@@ -190,6 +190,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
         menu.findItem(R.id.menu_export_web_dav)?.isChecked = AppConfig.exportToWebDav
         menu.findItem(R.id.menu_export_pics_file)?.isChecked = AppConfig.exportPictureFile
         menu.findItem(R.id.menu_parallel_export)?.isChecked = AppConfig.parallelExportBook
+        menu.findItem(R.id.menu_export_remove_cover_intro)?.isChecked = AppConfig.exportRemoveCoverAndIntro
         menu.findItem(R.id.menu_export_type)?.title =
             "${getString(R.string.export_type)}(${getTypeName()})"
         menu.findItem(R.id.menu_export_charset)?.title =
@@ -218,6 +219,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
             // 更改菜单状态[enableCustomExport]
             R.id.menu_enable_custom_export -> AppConfig.enableCustomExport = !item.isChecked
             R.id.menu_export_no_chapter_name -> AppConfig.exportNoChapterName = !item.isChecked
+            R.id.menu_export_remove_cover_intro -> AppConfig.exportRemoveCoverAndIntro = !item.isChecked
             R.id.menu_export_web_dav -> AppConfig.exportToWebDav = !item.isChecked
             R.id.menu_export_pics_file -> AppConfig.exportPictureFile = !item.isChecked
             R.id.menu_parallel_export -> AppConfig.parallelExportBook = !item.isChecked

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
@@ -546,4 +547,55 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
             finish()
         }
     }
+
+    override fun deleteChapter(bookChapter: BookChapter) {
+        activity?.let { ctx ->
+            androidx.appcompat.app.AlertDialog.Builder(ctx)
+                .setTitle("删除章节")
+                .setMessage("确定要删除章节 \"${bookChapter.title}\" 吗？")
+                .setPositiveButton("确定") { _, _ ->
+                    viewModel.deleteChapter(bookChapter.bookUrl, bookChapter.index) {
+                        lifecycleScope.launch {
+                            upChapterList(viewModel.searchKey)
+                        }
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+    }
+
+    override fun showChapterOperationDialog(bookChapter: BookChapter) {
+        activity?.let { ctx ->
+            val editText = EditText(ctx).apply {
+                setText(bookChapter.title)
+                setSelection(bookChapter.title.length)
+                setSingleLine()
+            }
+            androidx.appcompat.app.AlertDialog.Builder(ctx)
+                .setTitle("是否操作变化该章节${bookChapter.title}")
+                .setView(editText)
+                .setNegativeButton("取消", null)
+                .setNeutralButton("删除") { _, _ ->
+                    viewModel.deleteChapter(bookChapter.bookUrl, bookChapter.index) {
+                        lifecycleScope.launch {
+                            upChapterList(viewModel.searchKey)
+                        }
+                    }
+                }
+                .setPositiveButton("编辑") { _, _ ->
+                    val newName = editText.text.toString().trim()
+                    if (newName.isNotEmpty() && newName != bookChapter.title) {
+                        viewModel.updateChapterName(bookChapter.bookUrl, bookChapter.index, newName) {
+                            lifecycleScope.launch {
+                                adapter.clearDisplayTitle()
+                                upChapterList(viewModel.searchKey)
+                            }
+                        }
+                    }
+                }
+                .show()
+        }
+    }
+
 }

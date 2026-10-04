@@ -138,6 +138,26 @@ class PaddingConfigDialog : BaseDialogFragment(R.layout.dialog_read_padding) {
             }
             postRegionEvent(curRegion)
         }
+        cbShowReturnIcon.isChecked = ReadBookConfig.showReturnIcon
+        dsbReturnIconSize.progress = ReadBookConfig.returnIconSize
+        dsbReturnIconMarginRight.progress = ReadBookConfig.returnIconMarginRight
+        dsbReturnIconMarginTop.progress = ReadBookConfig.returnIconMarginTop
+        cbShowReturnIcon.onCheckedChangeListener = { _, isChecked ->
+            ReadBookConfig.showReturnIcon = isChecked
+            postEvent(EventBus.UP_CONFIG, arrayListOf(7))
+        }
+        dsbReturnIconSize.onChanged = {
+            ReadBookConfig.returnIconSize = it
+            postEvent(EventBus.UP_CONFIG, arrayListOf(7))
+        }
+        dsbReturnIconMarginRight.onChanged = {
+            ReadBookConfig.returnIconMarginRight = it
+            postEvent(EventBus.UP_CONFIG, arrayListOf(7))
+        }
+        dsbReturnIconMarginTop.onChanged = {
+            ReadBookConfig.returnIconMarginTop = it
+            postEvent(EventBus.UP_CONFIG, arrayListOf(7))
+        }
     }
 
     private fun bindRegion(region: Region) = binding.run {

@@ -127,10 +127,16 @@
     <string name="lan_backup_send_confirm">将生成临时加密备份，不含已保存的 Cookie、登录信息、源/书籍变量、WebDAV/远程服务器设置、直链上传设置、缓存、字体和本地书原文件。所选书源和规则的定义文本及自定义请求头会传输，请仅与可信设备配对，并在扫码期间保持此页面打开。</string>
     <string name="lan_backup_receive_confirm">接收来自“%2$s”的 %1$s 备份并恢复吗？恢复前会先备份当前设备。已保存的 Cookie、登录信息、源/书籍变量、服务器设置、缓存、字体和本地书原文件不会传输；所选书源和规则的定义文本及自定义请求头会传输。</string>
     <string name="lan_backup_waiting">请在接收设备扫描此二维码。临时会话五分钟后失效。</string>
+    <string name="backup_data">备份数据</string>
+    <string name="restore_data">还原数据</string>
     <string name="web_dav_set">WebDav 设置</string>
     <string name="web_dav_set_import_old">WebDav 设置/导入旧版本数据</string>
     <string name="backup">备份</string>
     <string name="restore">恢复</string>
+    <string name="restore_mode">恢复模式</string>
+    <string name="restore_normal">普通恢复（合并）</string>
+    <string name="restore_full">全量恢复（同步）</string>
+    <string name="sync_no">不同步</string>
     <string name="backup_permission">备份请给予存储权限</string>
     <string name="restore_permission">恢复请给予存储权限</string>
     <string name="ok">确认</string>
@@ -340,6 +346,10 @@
     <string name="no_last_chapter">无最新章节信息</string>
     <string name="showTimeBattery">显示时间和电量</string>
     <string name="showLine">显示分隔线</string>
+    <string name="return_shelf_icon">返回书架图标</string>
+    <string name="icon_size">图标大小</string>
+    <string name="margin_right">右边距</string>
+    <string name="margin_top">上边距</string>
     <string name="dark_status_icon">深色状态栏图标</string>
     <string name="content">内容</string>
     <string name="copy_text">拷贝内容</string>
@@ -1062,7 +1072,7 @@
     <string name="sync_book_progress_t">同步阅读进度</string>
     <string name="sync_book_progress_s">进入退出阅读界面时同步阅读进度</string>
     <string name="sync_book_progress_plus_t">同步增强</string>
-    <string name="sync_book_progress_plus_s">重新进入页面（息屏、后台返回等）或者网络变为可用时同步云端进度，同步新进度会询问</string>
+    <string name="sync_book_progress_plus_s">重新进入页面（息屏、后台返回等）或者网络变为可用时同步云端进度，同步新进度直接同步</string>
     <string name="create_bookmark_error">创建书签失败</string>
     <string name="single_url">单 URL</string>
     <string name="export_bookshelf">导出书单</string>
@@ -1078,6 +1088,7 @@
     <string name="export_folder">导出文件夹</string>
     <string name="export_charset">导出编码</string>
     <string name="export_no_chapter_name">TXT 不导出章节名</string>
+    <string name="export_remove_cover_intro">导出时删除封面和简介</string>
     <string name="export_to_web_dav">导出到 WebDav</string>
     <string name="reverse_content">反转内容</string>
     <string name="debug">调试</string>
@@ -1248,6 +1259,7 @@
     <string name="book_change_source">整书换源</string>
     <string name="sort_by_time">时间排序</string>
     <string name="enable_record">开启记录</string>
+    <string name="del_short_time">删除短时间记录</string>
     <string name="copy_all">拷贝所有</string>
     <string name="auto_complete">自动补全</string>
     <string name="sort_by_size">大小排序</string>
@@ -1393,7 +1405,7 @@
     <string name="same_title_removed">移除重复标题</string>
     <string name="update_book_fail">更新失败</string>
     <string name="notification_permission_rationale">阅读需要发送通知来显示朗读控制和下载进度</string>
-    <string name="webdav_after_local_restore_confirm">webDav书源比本地新,是否恢复</string>
+    <string name="webdav_after_local_restore_confirm">发现新备份，请选择同步方式</string>
     <string name="c_whitelist">白名单(contentWhitelist)</string>
     <string name="c_blacklist">黑名单(contentBlacklist)</string>
     <string name="confirm">确认</string>
@@ -1473,6 +1485,7 @@
     <string name="change_source_progress">结果 %1$d, 当前进度 %2$d / %3$d: %4$s</string>
     <string name="open_book_info_by_click_title">点击书名打开详情</string>
     <string name="export_wait">等待导出</string>
+    <string name="sync_book_progress_syncing">进度同步中</string>
     <string name="sync_book_progress_success">进度同步成功</string>
     <string name="default_home_page">默认主页</string>
     <string name="show_bookshelf_fast_scroller">显示快速滚动条</string>

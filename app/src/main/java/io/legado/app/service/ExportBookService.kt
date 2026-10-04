@@ -43,7 +43,9 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.OkHttpModelLoader
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadBook
+import io.legado.app.model.localBook.EpubFile
 import io.legado.app.model.localBook.LocalBook
+import io.legado.app.help.book.isEpub
 import io.legado.app.ui.book.cache.CacheActivity
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.FileUtils
@@ -935,30 +937,32 @@ class ExportBookService : BaseService() {
                 "Images/logo.png"
             )
         )
-        epubBook.addSection(
-            getString(R.string.img_cover),
-            ResourceUtil.createPublicResource(
-                book.name,
-                book.getRealAuthor(),
-                book.getDisplayIntro(),
-                book.kind,
-                book.wordCount,
-                String(appCtx.assets.open("epub/cover.html").readBytes()),
-                "Text/cover.html"
+        if (!AppConfig.exportRemoveCoverAndIntro) {
+            epubBook.addSection(
+                getString(R.string.img_cover),
+                ResourceUtil.createPublicResource(
+                    book.name,
+                    book.getRealAuthor(),
+                    book.getDisplayIntro(),
+                    book.kind,
+                    book.wordCount,
+                    String(appCtx.assets.open("epub/cover.html").readBytes()),
+                    "Text/cover.html"
+                )
             )
-        )
-        epubBook.addSection(
-            getString(R.string.book_intro),
-            ResourceUtil.createPublicResource(
-                book.name,
-                book.getRealAuthor(),
-                book.getDisplayIntro(),
-                book.kind,
-                book.wordCount,
-                String(appCtx.assets.open("epub/intro.html").readBytes()),
-                "Text/intro.html"
+            epubBook.addSection(
+                getString(R.string.book_intro),
+                ResourceUtil.createPublicResource(
+                    book.name,
+                    book.getRealAuthor(),
+                    book.getDisplayIntro(),
+                    book.kind,
+                    book.wordCount,
+                    String(appCtx.assets.open("epub/intro.html").readBytes()),
+                    "Text/intro.html"
+                )
             )
-        )
+        }
         return String(appCtx.assets.open("epub/chapter.html").readBytes())
     }
 
@@ -1082,13 +1086,29 @@ class ExportBookService : BaseService() {
                         "${MD5Utils.md5Encode16(src)}.${BookHelp.getImageSuffix(src)}"
                     val href =
                         "Images/${MD5Utils.md5Encode16(src)}.${BookHelp.getImageSuffix(src)}"
-                    val vFile = BookHelp.getImage(book, src)
-                    val fp = FileResourceProvider(vFile.parent)
-                    if (vFile.exists()) {
-                        val img = LazyResource(fp, href, originalHref)
-                        resources.add(img)
+                    
+                    if (book.isEpub) {
+                        kotlin.runCatching {
+                            val imgStream = EpubFile.getImage(book, src)
+                            imgStream?.let { stream ->
+                                val imgData = stream.readBytes()
+                                val provider = LazyResourceProvider { _ ->
+                                    imgData.inputStream()
+                                }
+                                val img = LazyResource(provider, href, originalHref)
+                                resources.add(img)
+                                text1 = text1.replace(src, "../${href}")
+                            }
+                        }
+                    } else {
+                        val vFile = BookHelp.getImage(book, src)
+                        val fp = FileResourceProvider(vFile.parent)
+                        if (vFile.exists()) {
+                            val img = LazyResource(fp, href, originalHref)
+                            resources.add(img)
+                        }
+                        text1 = text1.replace(src, "../${href}")
                     }
-                    text1 = text1.replace(src, "../${href}")
                 }
             }
             data.append(text1).append("\n")

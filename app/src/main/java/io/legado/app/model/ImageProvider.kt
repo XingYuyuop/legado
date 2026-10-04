@@ -124,10 +124,12 @@ object ImageProvider {
         val lruMaxSize = bitmapLruCache.maxSize()
         val lruSize = bitmapLruCache.size()
         val byteCount = bitmap.byteCount
+        //缓存扩容上限为最大堆内存的1/4,避免缓存膨胀占满内存导致OOM
+        val maxSizeLimit = (Runtime.getRuntime().maxMemory() / 4).toInt()
         val size = if (byteCount > lruMaxSize) {
-            min(256 * M, (byteCount * 1.3).toInt())
+            min(maxSizeLimit, (byteCount * 1.3).toInt())
         } else if (lruSize + byteCount > lruMaxSize && bitmapLruCache.count < 5) {
-            min(256 * M, (lruSize + byteCount * 1.3).toInt())
+            min(maxSizeLimit, (lruSize + byteCount * 1.3).toInt())
         } else {
             lruMaxSize
         }

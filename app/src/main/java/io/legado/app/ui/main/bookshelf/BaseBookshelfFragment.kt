@@ -25,7 +25,11 @@ import io.legado.app.databinding.ViewBookshelfHeaderBinding
 import io.legado.app.help.DirectLinkUpload
 import io.legado.app.help.book.readProgress
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.coroutine.Coroutine
+import io.legado.app.help.AppWebDav
+import io.legado.app.help.storage.Backup
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.dialogs.selector
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.cache.CacheActivity
 import io.legado.app.ui.book.group.GroupManageDialog
@@ -37,6 +41,7 @@ import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.main.MainViewModel
+import io.legado.app.utils.toastOnUi
 import io.legado.app.ui.widget.dialog.WaitDialog
 import io.legado.app.utils.checkByIndex
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChangeFirst
@@ -230,6 +235,8 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
 
             R.id.menu_import_bookshelf -> importBookshelfAlert(groupId)
             R.id.menu_log -> showDialogFragment<AppLogDialog>()
+            R.id.menu_backup -> backupData()
+            R.id.menu_restore -> restoreData()
         }
     }
 
@@ -411,6 +418,59 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
                     allowExtensions = arrayOf("txt", "json")
                 }
             }
+        }
+    }
+
+    private fun backupData() {
+        if (!AppWebDav.isOk) {
+            context?.toastOnUi("请先配置WebDav")
+            return
+        }
+        waitDialog.setText("备份中…")
+        waitDialog.show()
+        Coroutine.async {
+            Backup.backupLocked(requireContext(), AppConfig.backupPath)
+        }.onFinally {
+            waitDialog.dismiss()
+            context?.toastOnUi("备份完成")
+        }
+    }
+
+    private fun restoreData() {
+        if (!AppWebDav.isOk) {
+            context?.toastOnUi("请先配置WebDav")
+            return
+        }
+        waitDialog.setText("获取备份文件…")
+        waitDialog.show()
+        Coroutine.async {
+            withContext(Dispatchers.IO) {
+                AppWebDav.lastBackUp().getOrNull()
+            }
+        }.onSuccess { file ->
+            waitDialog.dismiss()
+            file?.let { backupFile ->
+                context?.selector(
+                    title = getString(R.string.restore_mode),
+                    items = listOf(
+                        getString(R.string.restore_normal),
+                        getString(R.string.restore_full)
+                    )
+                ) { _, index ->
+                    val isFullRestore = index == 1
+                    waitDialog.setText("恢复中…")
+                    waitDialog.show()
+                    Coroutine.async {
+                        AppWebDav.restoreWebDav(backupFile.displayName, isFullRestore)
+                    }.onFinally {
+                        waitDialog.dismiss()
+                        context?.toastOnUi("恢复完成")
+                    }
+                }
+            } ?: context?.toastOnUi("没有找到备份文件")
+        }.onError {
+            waitDialog.dismiss()
+            context?.toastOnUi("获取备份文件失败")
         }
     }
 

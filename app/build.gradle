@@ -93,6 +93,10 @@ android {
         buildConfigField "String", "Cronet_Version", "\"$CronetVersion\""
         buildConfigField "String", "Cronet_Main_Version", "\"$CronetMainVersion\""
 
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86_64", "x86"
+        }
+
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments += [
@@ -147,13 +151,18 @@ android {
     room {
         schemaDirectory "$projectDir/schemas"
     }
+    android.applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            def flavor = variant.productFlavors[0].name
+            outputFileName = "${name}_${flavor}_${defaultConfig.versionName}.apk"
+        }
+    }
     // 设定Room的KSP参数
     ksp {
         arg("room.incremental", "true")
         arg("room.expandProjection", "true")
         arg("room.generateKotlin", "false")
         //arg("room.schemaLocation", "$projectDir/schemas")
-
     }
 
     compileOptions {
@@ -270,15 +279,20 @@ dependencies {
     //弹幕
     implementation (libs.danmakuFlameMaster)
 
-    //Splitties
-    implementation(libs.splitties.appctx)
-    implementation(libs.splitties.systemservices)
-    implementation(libs.splitties.views)
+    //Splitties (本地引用，Maven Central已下架3.0.0)
+    implementation(files("libs/splitties-appctx-release.aar"))
+    implementation(files("libs/splitties-systemservices-release.aar"))
+    implementation(files("libs/splitties-views-release.aar"))
+    implementation(files("libs/splitties-dimensions-release.aar"))
+    implementation(files("libs/splitties-mainthread-release.aar"))
+    implementation(files("libs/splitties-exceptions-release.aar"))
+    implementation(files("libs/splitties-resources-release.aar"))
+    implementation(files("libs/splitties-experimental-jvm-3.0.0.jar"))
 
     //room sql语句不高亮解决方法https://issuetracker.google.com/issues/234612964#comment6
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    //kapt("androidx.room:room-compiler:$room_version")
+    //kapt(libs.room.compiler)
     ksp(libs.room.compiler)
     androidTestImplementation(libs.room.testing)
 

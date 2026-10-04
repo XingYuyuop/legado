@@ -16,7 +16,6 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.view.menu.MenuItemImpl
 import androidx.core.view.doOnLayout
 import androidx.core.view.get
@@ -134,7 +133,6 @@ import io.legado.app.ui.widget.dialog.PhotoDialog
 import io.legado.app.ui.widget.popupActionMenu
 import io.legado.app.utils.ACache
 import io.legado.app.utils.ColorUtils
-import io.legado.app.utils.Debounce
 import io.legado.app.utils.LogUtils
 import io.legado.app.utils.NetworkUtils
 import io.legado.app.utils.StartActivityContract
@@ -159,6 +157,7 @@ import io.legado.app.utils.startActivity
 import io.legado.app.utils.startActivityForBook
 import io.legado.app.utils.sysScreenOffTime
 import io.legado.app.utils.throttle
+import io.legado.app.utils.gone
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.visible
 import kotlinx.coroutines.CancellationException
@@ -300,8 +299,6 @@ class ReadBookActivity : BaseReadBookActivity(),
     override val pageDelegate get() = binding.readView.pageDelegate
     override val headerHeight: Int get() = binding.readView.curPage.headerHeight
     override val imgBgPaddingStart: Int get() = binding.readView.curPage.imgBgPaddingStart
-    private val nextPageDebounce by lazy { Debounce { keyPage(PageDirection.NEXT) } }
-    private val prevPageDebounce by lazy { Debounce { keyPage(PageDirection.PREV) } }
     private var bookChanged = false
     private var pageChanged = false
     private val aloudControls by lazy {
@@ -338,7 +335,6 @@ class ReadBookActivity : BaseReadBookActivity(),
         NetworkChangedListener(this)
     }
     private var justInitData: Boolean = false
-    private var syncDialog: AlertDialog? = null
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1428,7 +1424,7 @@ class ReadBookActivity : BaseReadBookActivity(),
             val scrollDistance = (distance * (AppConfig.mouseWheelScrollSpeed / 2f)).toInt()
             (binding.readView.pageDelegate as? ScrollPageDelegate)?.curPage?.scroll(scrollDistance)
         } else {
-            keyPageDebounce(direction, mouseWheel = true, longPress = false)
+            keyPage(direction)
         }
     }
 
@@ -1447,35 +1443,8 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     private fun handleKeyPage(direction: PageDirection, longPress: Boolean) {
-        if (AppConfig.keyPageOnLongPress || direction == PageDirection.NONE) {
+        if (direction != PageDirection.NONE) {
             keyPage(direction)
-        } else {
-            keyPageDebounce(direction, longPress = longPress)
-        }
-    }
-
-    private fun keyPageDebounce(
-        direction: PageDirection,
-        mouseWheel: Boolean = false,
-        longPress: Boolean
-    ) {
-        if (longPress) {
-            return
-        }
-        nextPageDebounce.apply {
-            wait = if (mouseWheel) 200L else 600L
-            leading = !mouseWheel
-            trailing = mouseWheel
-        }
-        prevPageDebounce.apply {
-            wait = if (mouseWheel) 200L else 600L
-            leading = !mouseWheel
-            trailing = mouseWheel
-        }
-        when (direction) {
-            PageDirection.NEXT -> nextPageDebounce.invoke()
-            PageDirection.PREV -> prevPageDebounce.invoke()
-            else -> {}
         }
     }
 
@@ -2870,14 +2839,19 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     override fun sureNewProgress(progress: BookProgress) {
-        syncDialog?.dismiss()
-        syncDialog = alert(R.string.get_book_progress) {
-            setMessage(R.string.cloud_progress_exceeds_current)
-            okButton {
-                ReadAloud.detachReadAloudFollow()
-                ReadBook.setProgress(progress)
-            }
-            noButton()
+        showSyncProgressTip()
+        ReadAloud.detachReadAloudFollow()
+        ReadBook.setProgress(progress)
+    }
+
+    private var syncProgressTipJob: Job? = null
+
+    private fun showSyncProgressTip() {
+        syncProgressTipJob?.cancel()
+        binding.readView.showSyncProgress()
+        syncProgressTipJob = lifecycleScope.launch {
+            delay(2000)
+            binding.readView.hideSyncProgress()
         }
     }
 
@@ -2962,6 +2936,7 @@ class ReadBookActivity : BaseReadBookActivity(),
                         )
                     }
                     6 -> readView.upContent(resetPageOffset = false)
+                    7 -> readView.upReturnIcon()
                     8 -> ChapterProvider.upStyle()
                     9 -> readView.invalidateTextPage()
                     10 -> ChapterProvider.upLayout()

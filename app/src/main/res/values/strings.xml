@@ -129,10 +129,16 @@
     <string name="lan_backup_send_confirm">Creates a temporary encrypted backup without saved cookies, login data, source/book variables, WebDAV/remote server settings, direct-link upload settings, caches, fonts, or local book files. Selected source/rule definitions and custom headers are transferred. Pair only with a trusted device and keep this screen open while it scans the QR code.</string>
     <string name="lan_backup_receive_confirm">Receive %1$s from %2$s and restore it? The current device will be backed up first. Saved cookies, login data, source/book variables, server settings, caches, fonts, and local book files are not transferred; selected source/rule definitions and custom headers are transferred.</string>
     <string name="lan_backup_waiting">Scan this QR code on the receiving device. The temporary session expires in five minutes.</string>
+    <string name="backup_data">Backup data</string>
+    <string name="restore_data">Restore data</string>
     <string name="web_dav_set">WebDav settings</string>
     <string name="web_dav_set_import_old">WebDav settings/Import legacy data</string>
     <string name="backup">Backup</string>
     <string name="restore">Restore</string>
+    <string name="restore_mode">Restore mode</string>
+    <string name="restore_normal">Normal restore (merge)</string>
+    <string name="restore_full">Full restore (sync)</string>
+    <string name="sync_no">No sync</string>
     <string name="backup_permission">Backup needs storage permission</string>
     <string name="restore_permission">Restore needs storage permission</string>
     <string name="ok">OK</string>
@@ -343,6 +349,10 @@
     <string name="no_last_chapter">No latest chapter.</string>
     <string name="showTimeBattery">Display time and battery</string>
     <string name="showLine">Display divider</string>
+    <string name="return_shelf_icon">Return to shelf icon</string>
+    <string name="icon_size">Icon size</string>
+    <string name="margin_right">Margin right</string>
+    <string name="margin_top">Margin top</string>
     <string name="dark_status_icon">Darken the status bar\'s icon color</string>
     <string name="content">Content</string>
     <string name="copy_text">Copy</string>
@@ -1065,6 +1075,7 @@
     <string name="sync_book_progress_s">Synchronize reading progress when entering / exiting the reading interface</string>
     <string name="sync_book_progress_plus_t">Sync Enhancement</string>
     <string name="sync_book_progress_plus_s">Sync cloud progress when re-entering the page (screen off, returning from background, etc.) or when the network becomes available. You will be prompted before syncing new progress.</string>
+    <string name="sync_book_progress_syncing">Progress syncing</string>
     <string name="sync_book_progress_success">Sync progress success</string>
     <string name="create_bookmark_error">Failed to create bookmark</string>
     <string name="single_url">Single URL</string>
@@ -1129,6 +1140,7 @@
     <string name="dict">dict</string>
     <string name="unknown_error">unknown error</string>
     <string name="export_no_chapter_name">No export chapter names</string>
+    <string name="export_remove_cover_intro">Remove cover and intro</string>
     <string name="autobackup_fail">Autobackup failed\n%s</string>
     <string name="end">end</string>
     <string name="custom_group_summary">Turn off Replace Group / Turn on Add Group</string>
@@ -1253,6 +1265,7 @@
     <string name="book_change_source">Change the source of the whole book</string>
     <string name="sort_by_time">Sort by time</string>
     <string name="enable_record">Enable record</string>
+    <string name="del_short_time">Delete short time records</string>
     <string name="copy_all">Copy all</string>
     <string name="auto_complete">Automatic completion</string>
     <string name="sort_by_size">Sort by size</string>
@@ -1398,7 +1411,7 @@
     <string name="same_title_removed">Remove duplicate title</string>
     <string name="update_book_fail">Update failed</string>
     <string name="notification_permission_rationale">Reading requires sending notifications to show reading control and download progress</string>
-    <string name="webdav_after_local_restore_confirm">The webDav book source is newer than the local one, whether to restore it or not</string>
+    <string name="webdav_after_local_restore_confirm">Found new backup, please select sync mode</string>
     <string name="c_whitelist">白名单(contentWhitelist)</string>
     <string name="c_blacklist">黑名单(contentBlacklist)</string>
     <string name="confirm">Confirm</string>

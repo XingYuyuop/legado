@@ -18,3 +18,10 @@ package-lock.json
 .kotlin/
 .cxx
 .vscode
+
+# local debug artifacts
+*.hprof
+/main.css
+/*.svg
+/ic_launcher.png
+/image_legado.png

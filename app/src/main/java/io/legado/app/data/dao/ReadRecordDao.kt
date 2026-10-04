@@ -122,4 +122,10 @@ interface ReadRecordDao {
         where bookName = :bookName and author = '' and resolvedAuthor is null""")
     fun assignUnknownAuthor(bookName: String, author: String)
 
+    @Query("delete from readRecord where bookName = :bookName")
+    fun deleteByName(bookName: String)
+
+    @Query("delete from readRecord where readTime < :time")
+    fun deleteLessThan(time: Long)
+
 }

@@ -132,6 +132,50 @@
             app:max="100"
             app:title="@string/padding_right" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="10dp">
+
+            <io.legado.app.ui.widget.text.AccentTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/return_shelf_icon"
+                android:textSize="18sp" />
+
+            <io.legado.app.ui.widget.checkbox.SmoothCheckBox
+                android:id="@+id/cb_show_return_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_margin="6dp" />
+
+        </LinearLayout>
+
+        <io.legado.app.ui.widget.DetailSeekBar
+            android:id="@+id/dsb_return_icon_size"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:max="60"
+            app:min="12"
+            app:title="@string/icon_size" />
+
+        <io.legado.app.ui.widget.DetailSeekBar
+            android:id="@+id/dsb_return_icon_margin_right"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:max="50"
+            app:title="@string/margin_right" />
+
+        <io.legado.app.ui.widget.DetailSeekBar
+            android:id="@+id/dsb_return_icon_margin_top"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:max="50"
+            app:title="@string/margin_top" />
+
         <io.legado.app.lib.theme.view.ThemeSwitch
             android:id="@+id/sw_lock_lr"
             android:layout_width="match_parent"

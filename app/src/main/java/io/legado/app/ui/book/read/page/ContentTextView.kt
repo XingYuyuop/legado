@@ -50,8 +50,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     var selectAble = AppConfig.textSelectAble
     val selectedPaint by lazy {
         Paint().apply {
-            color = context.getCompatColor(R.color.btn_bg_press_2)
-            style = Paint.Style.FILL
+            color = 0xFF000000.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
         }
     }
     private var callBack: CallBack

@@ -150,6 +150,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
     internal val isTouching: Boolean get() = pressDown
     private var isMove = false
     private val readPositionVersion = ReadPositionVersion()
+    private var returnIconPressed = false
 
     //起始点
     var startX: Float = 0f
@@ -335,6 +336,10 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 pullBookmarkCandidate = AppConfig.pullToToggleBookmark &&
                         !pressOnTextSelected && !isAutoPage &&
                         (!isScroll || curPage.isAtChapterTop())
+                returnIconPressed = curPage.isTouchOnReturnIcon(event.x, event.y)
+                if (returnIconPressed) {
+                    curPage.setReturnIconPressed(true)
+                }
                 pageDelegate?.onTouch(event)
                 pageDelegate?.onDown()
                 setStartPoint(event.x, event.y, false)
@@ -378,6 +383,10 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 if (isMove) {
                     longPressed = false
                     removeCallbacks(longPressRunnable)
+                    if (returnIconPressed) {
+                        val stillOnIcon = curPage.isTouchOnReturnIcon(event.x, event.y)
+                        curPage.setReturnIconPressed(stillOnIcon)
+                    }
                     if (isTextSelected) {
                         selectText(event.x, event.y)
                         showTextMagnifier(event.x, event.y)
@@ -408,6 +417,11 @@ class ReadView(context: Context, attrs: AttributeSet) :
                     return true
                 }
                 resetPullBookmarkGesture()
+                val wasReturnIconPressed = returnIconPressed
+                if (returnIconPressed) {
+                    curPage.setReturnIconPressed(false)
+                    returnIconPressed = false
+                }
                 if (!pageDelegate!!.isMoved && !isMove) {
                     if (!longPressed && !pressOnTextSelected) {
                         if (!curPage.onClick(startX, startY)) {
@@ -418,7 +432,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
                 }
                 if (isTextSelected) {
                     callBack.showTextActionMenu()
-                } else if (pageDelegate!!.isMoved) {
+                } else if (pageDelegate!!.isMoved && !wasReturnIconPressed) {
                     pageDelegate?.onTouch(event)
                 }
                 pressOnTextSelected = false
@@ -438,9 +452,14 @@ class ReadView(context: Context, attrs: AttributeSet) :
                     autoPager.resume()
                     return true
                 }
+                val wasReturnIconPressed = returnIconPressed
+                if (returnIconPressed) {
+                    curPage.setReturnIconPressed(false)
+                    returnIconPressed = false
+                }
                 if (isTextSelected) {
                     callBack.showTextActionMenu()
-                } else if (pageDelegate!!.isMoved) {
+                } else if (pageDelegate!!.isMoved && !wasReturnIconPressed) {
                     pageDelegate?.onTouch(event)
                 }
                 pressOnTextSelected = false
@@ -1028,6 +1047,12 @@ class ReadView(context: Context, attrs: AttributeSet) :
         }
     }
 
+    fun upReturnIcon() {
+        curPage.upReturnIcon()
+        prevPage.upReturnIcon()
+        nextPage.upReturnIcon()
+    }
+
     /**
      * 更新背景
      */
@@ -1202,6 +1227,18 @@ class ReadView(context: Context, attrs: AttributeSet) :
     override fun hasPrevChapter(): Boolean {
         if (replacePreview != null) return false
         return ReadBook.durChapterIndex > 0
+    }
+
+    fun showSyncProgress() {
+        prevPage.showSyncProgress()
+        curPage.showSyncProgress()
+        nextPage.showSyncProgress()
+    }
+
+    fun hideSyncProgress() {
+        prevPage.hideSyncProgress()
+        curPage.hideSyncProgress()
+        nextPage.hideSyncProgress()
     }
 
     interface CallBack {
