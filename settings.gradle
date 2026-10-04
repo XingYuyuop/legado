@@ -19,10 +19,13 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        //镜像仓库(放在原仓库前面优先使用)
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        // CI(如GitHub Actions)访问国内镜像不稳定，跳过镜像直接用原仓库
+        if (System.getenv('CI') != 'true' && System.getenv('GITHUB_ACTIONS') != 'true') {
+            //镜像仓库(放在原仓库前面优先使用)
+            maven { url 'https://maven.aliyun.com/repository/google' }
+            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        }
         //原仓库
         gradlePluginPortal()
         mavenCentral()
@@ -32,8 +35,11 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        //镜像仓库(放在原仓库前面优先使用)
-        maven { url 'https://maven.aliyun.com/repository/public' }
+        // CI(如GitHub Actions)访问国内镜像不稳定，跳过镜像直接用原仓库
+        if (System.getenv('CI') != 'true' && System.getenv('GITHUB_ACTIONS') != 'true') {
+            //镜像仓库(放在原仓库前面优先使用)
+            maven { url 'https://maven.aliyun.com/repository/public' }
+        }
         maven {
             url = uri("$rootDir/third_party/maven")
             content {
