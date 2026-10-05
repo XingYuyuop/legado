@@ -167,6 +167,11 @@ class BackupConfigFragment : PreferenceFragment(),
         upPreferenceSummary(PreferKey.webDavDeviceName, AppConfig.webDavDeviceName)
         upPreferenceSummary(PreferKey.backupPath, getPrefString(PreferKey.backupPath))
         updateAutoBackupSummary()
+        findPreference<io.legado.app.lib.prefs.Preference>("web_dav_backup")
+            ?.onLongClick {
+                backup()
+                true
+            }
         findPreference<io.legado.app.lib.prefs.Preference>("web_dav_restore")
             ?.onLongClick {
                 restoreFromLocal()
@@ -282,7 +287,7 @@ class BackupConfigFragment : PreferenceFragment(),
             PreferKey.backupPath -> showBackupPathSelector()
             PreferKey.backupContent -> backupContent()
             PreferKey.restoreIgnore -> backupIgnore()
-            "web_dav_backup" -> backup()
+            "web_dav_backup" -> startBackup(uploadWebDav = true)
             "localPassword" -> alertLocalPassword()
             PreferKey.autoBackup -> configureAutoBackup()
             "web_dav_restore" -> restore()
