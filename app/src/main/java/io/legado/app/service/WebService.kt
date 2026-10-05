@@ -65,12 +65,6 @@ class WebService : BaseService() {
                 context.stopService<WebService>()
             }
         }
-
-        fun serve() {
-            appCtx.startService<WebService> {
-                action = "serve"
-            }
-        }
     }
 
     private val useWakeLock = appCtx.getPrefBoolean(PreferKey.webServiceWakeLock, false)
@@ -136,10 +130,6 @@ class WebService : BaseService() {
         when (intent?.action) {
             IntentAction.stop -> stopServiceWithNotification()
             "copyHostAddress" -> sendToClip(hostAddress)
-            "serve" -> if (useWakeLock) {
-                wakeLock.acquire()
-                wifiLock?.acquire()
-            }
 
             else -> {
                 terminalStopJob?.cancel()

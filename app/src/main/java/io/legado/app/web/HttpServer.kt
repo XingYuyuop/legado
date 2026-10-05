@@ -11,7 +11,6 @@ import io.legado.app.api.controller.ReplaceRuleController
 import io.legado.app.api.controller.ReviewController
 import io.legado.app.api.controller.RssSourceController
 import io.legado.app.help.coroutine.Coroutine
-import io.legado.app.service.WebService
 import io.legado.app.utils.GSON
 import io.legado.app.utils.LogUtils
 import io.legado.app.utils.stackTraceStr
@@ -23,12 +22,12 @@ import okio.buffer
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.URI
+import java.util.zip.GZIPOutputStream
 
 class HttpServer(port: Int) : NanoHTTPD(port) {
     private val assetsWeb = AssetsWeb("web")
 
     override fun serve(session: IHTTPSession): Response {
-        WebService.serve()
         var returnData: ReturnData? = null
         var shouldCloseConnection = false
         val ct = ContentType(session.headers["content-type"]).tryUTF8()
@@ -167,7 +166,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                 if (uri.endsWith("/"))
                     uri += "index.html"
                 return assetsWeb.getResponse(uri).apply {
-                    addWebHeaders(session.headers["origin"], uri)
+                    addWebHeaders(session.headers["origin"], uri, isStaticAsset = true)
                 }
             }
 
@@ -185,7 +184,27 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                 )
             } else {
                 val data = returnData.data
-                if (data is List<*> && data.size > 3000) {
+                val acceptGzip = session.headers.entries.any {
+                    it.key.equals("accept-encoding", true) &&
+                        it.value.contains("gzip", ignoreCase = true)
+                }
+                if (data is List<*> && data.size > 200 && acceptGzip) {
+                    val pipe = Pipe(16 * 1024)
+                    Coroutine.async {
+                        GZIPOutputStream(pipe.sink.buffer().outputStream()).bufferedWriter(
+                            Charsets.UTF_8
+                        ).use {
+                            GSON.toJson(returnData, it)
+                        }
+                    }
+                    newChunkedResponse(
+                        Response.Status.OK,
+                        JSON_MIME,
+                        pipe.source.buffer().inputStream()
+                    ).apply {
+                        addHeader("Content-Encoding", "gzip")
+                    }
+                } else if (data is List<*> && data.size > 200) {
                     val pipe = Pipe(16 * 1024)
                     Coroutine.async {
                         pipe.sink.buffer().outputStream().bufferedWriter(Charsets.UTF_8).use {
@@ -204,6 +223,9 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
                         GSON.toJson(returnData)
                     )
                 }
+            }
+            if (uri == "/cover" || uri == "/image") {
+                response.addHeader("Cache-Control", "public, max-age=3600")
             }
             response.addHeader("Access-Control-Allow-Methods", "GET, POST")
             response.addWebHeaders(session.headers["origin"], uri)
@@ -271,9 +293,28 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
         )
     }
 
-    private fun Response.addWebHeaders(origin: String?, uri: String) {
+    private fun Response.addWebHeaders(
+        origin: String?,
+        uri: String,
+        isStaticAsset: Boolean = false,
+    ) {
         addHeader("X-Content-Type-Options", "nosniff")
         origin?.let { addHeader("Access-Control-Allow-Origin", it) }
+        if (isStaticAsset) {
+            when {
+                uri.startsWith("/vue/assets/") ->
+                    // 构建产物文件名含内容哈希，可长期缓存
+                    addHeader("Cache-Control", "public, max-age=31536000, immutable")
+
+                uri.endsWith(".html") || uri.endsWith(".htm") -> {
+                    if (!uri.startsWith("/vue/")) {
+                        addHeader("Cache-Control", "no-cache")
+                    }
+                }
+
+                else -> addHeader("Cache-Control", "public, max-age=86400")
+            }
+        }
         if (
             uri in PROTECTED_HTTP_LOG_READ_ROUTES ||
             uri == "/getJsSourceApiTokenRequired"

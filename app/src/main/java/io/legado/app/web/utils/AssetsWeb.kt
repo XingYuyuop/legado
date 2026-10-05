@@ -31,7 +31,9 @@ class AssetsWeb(rootPath: String) {
     }
 
     private fun getMimeType(path: String): String {
-        val suffix = path.substring(path.lastIndexOf("."))
+        val dot = path.lastIndexOf(".")
+        if (dot < 0) return "text/html"
+        val suffix = path.substring(dot)
         return when {
             suffix.equals(".html", ignoreCase = true)
                     || suffix.equals(".htm", ignoreCase = true) -> "text/html"
