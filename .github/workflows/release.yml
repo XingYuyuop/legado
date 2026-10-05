@@ -1,11 +1,9 @@
 name: Release Build
 
 on:
-#  push:
-#    branches:
-#      - master
-#    paths:
-#      - 'CHANGELOG.md'
+  push:
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
