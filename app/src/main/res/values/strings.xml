@@ -253,6 +253,7 @@
     <string name="beta_update_no_compatible_apk">A newer beta exists, but it has no APK compatible with this device</string>
     <string name="latest_beta_version">Already on the latest beta version</string>
     <string name="beta_update_now">Update now</string>
+    <string name="background_download">Background download</string>
     <string name="source_github_direct">GitHub direct</string>
     <string name="source_mirror">Mirror %1$s</string>
     <string name="ping_testing">testing…</string>

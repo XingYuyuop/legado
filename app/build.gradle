@@ -64,7 +64,9 @@ android {
     }
     defaultConfig {
         applicationId "com.legado.app"
-        minSdk 23
+        // htmlunit-core-js(JS引擎)为Java17字节码(含StringConcatFactory invokedynamic)
+        // D8要求minSdk>=26(ART 8.0起支持invokedynamic)
+        minSdk 26
         targetSdk 36
         versionCode = versionCodeValue
         versionName version

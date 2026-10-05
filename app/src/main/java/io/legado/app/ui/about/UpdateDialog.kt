@@ -2,6 +2,7 @@ package io.legado.app.ui.about
 
 import android.os.Bundle
 import android.os.SystemClock
+import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
@@ -15,9 +16,12 @@ import io.legado.app.databinding.DialogUpdateBinding
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.http.okHttpClient
 import io.legado.app.help.update.AppUpdate
+import io.legado.app.help.update.AppUpdateDownloader
+import io.legado.app.help.update.localProxyMirror
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.model.Download
 import io.legado.app.utils.ConvertUtils
+import io.legado.app.utils.openFileUri
 import io.legado.app.utils.openUrl
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -62,6 +66,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
     private val radioButtons = ArrayList<Pair<String, RadioButton>>()
     private val pingViews = HashMap<String, TextView>()
     private var selectedUrl: String? = null
+    private var inAppDownloadActive = false
 
     override fun onStart() {
         super.onStart()
@@ -96,6 +101,11 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.btnBetaUpdate.setOnClickListener {
             startDownload(selectedUrl ?: arguments?.getString("url"))
         }
+        binding.cbBackgroundDownload.isChecked = LocalConfig.updateBackgroundDownload
+        binding.cbBackgroundDownload.setOnCheckedChangeListener { _, isChecked ->
+            LocalConfig.updateBackgroundDownload = isChecked
+        }
+        observeDownloadState()
         setupSourceRows()
         setupMenu()
     }
@@ -221,9 +231,98 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
     private fun startDownload(url: String?) {
         val name = arguments?.getString("name")
         if (url.isNullOrBlank() || name.isNullOrBlank()) return
-        Download.start(requireContext(), url, name, isAppUpdate = true)
-        toastOnUi(R.string.download_start)
-        dismiss()
+        val proxy = localProxyMirror()
+        if (proxy != null || !LocalConfig.updateBackgroundDownload) {
+            // 局域网/本机代理下载 或 已关闭后台下载：应用内下载并显示进度
+            startInAppDownload(url, name, proxy)
+        } else {
+            Download.start(requireContext(), url, name, isAppUpdate = true)
+            toastOnUi(R.string.download_start)
+            dismiss()
+        }
+    }
+
+    private fun startInAppDownload(url: String, fileName: String, proxy: String?) {
+        inAppDownloadActive = true
+        binding.betaActions.isVisible = false
+        binding.cbBackgroundDownload.isVisible = false
+        binding.sourceContainer.isVisible = false
+        binding.downloadProgressContainer.isVisible = true
+        binding.tvDownloadState.text = getString(R.string.downloading)
+        binding.btnCancelDownload.setOnClickListener {
+            AppUpdateDownloader.cancel()
+        }
+        AppUpdateDownloader.start(url, fileName, proxy)
+    }
+
+    private fun observeDownloadState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            AppUpdateDownloader.state.collect { st ->
+                if (!inAppDownloadActive || st == null) return@collect
+                when (st.status) {
+                    AppUpdateDownloader.Status.RUNNING -> upDownloadProgress(st)
+
+                    AppUpdateDownloader.Status.COMPLETED -> {
+                        inAppDownloadActive = false
+                        toastOnUi(R.string.download_success)
+                        st.file?.let { file ->
+                            requireContext().openFileUri(
+                                Uri.fromFile(file),
+                                "application/vnd.android.package-archive"
+                            )
+                        }
+                        dismiss()
+                    }
+
+                    AppUpdateDownloader.Status.FAILED -> {
+                        inAppDownloadActive = false
+                        toastOnUi(
+                            st.error?.takeIf(String::isNotBlank)
+                                ?.let { getString(R.string.download_error) + ": " + it }
+                                ?: getString(R.string.download_error)
+                        )
+                        showDownloadActions()
+                    }
+
+                    AppUpdateDownloader.Status.CANCELED -> {
+                        inAppDownloadActive = false
+                        showDownloadActions()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun upDownloadProgress(st: AppUpdateDownloader.State) {
+        if (st.total > 0) {
+            binding.downloadProgressBar.isIndeterminate = false
+            binding.downloadProgressBar.max = 100
+            binding.downloadProgressBar.progress =
+                ((st.bytes * 100) / st.total).toInt().coerceIn(0, 100)
+            binding.tvDownloadState.text = buildString {
+                append((st.bytes * 100 / st.total).toInt().coerceIn(0, 100))
+                append("% · ")
+                append(ConvertUtils.formatFileSize(st.speedBytesPerSec))
+                append("/s · ")
+                append(ConvertUtils.formatFileSize(st.bytes))
+                append("/")
+                append(ConvertUtils.formatFileSize(st.total))
+            }
+        } else {
+            binding.downloadProgressBar.isIndeterminate = true
+            binding.tvDownloadState.text = buildString {
+                append(ConvertUtils.formatFileSize(st.speedBytesPerSec))
+                append("/s · ")
+                append(ConvertUtils.formatFileSize(st.bytes))
+            }
+        }
+    }
+
+    private fun showDownloadActions() {
+        binding.downloadProgressContainer.isVisible = false
+        binding.betaActions.isVisible = true
+        binding.cbBackgroundDownload.isVisible = true
+        binding.sourceContainer.isVisible = sources.isNotEmpty()
     }
 
 }

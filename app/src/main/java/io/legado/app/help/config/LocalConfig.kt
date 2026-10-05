@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import io.legado.app.utils.getBoolean
+import io.legado.app.utils.getBooleanCompat
 import io.legado.app.utils.putBoolean
 import io.legado.app.utils.putLong
 import io.legado.app.utils.putString
@@ -90,6 +91,16 @@ by appCtx.getSharedPreferences("local", Context.MODE_PRIVATE) {
             } else {
                 putString("ignoreUpdateVersion", value)
             }
+        }
+
+    /**
+     * 应用更新默认使用后台下载(系统DownloadManager)
+     * 关闭后改为应用内下载，界面显示下载进度与速度
+     */
+    var updateBackgroundDownload: Boolean
+        get() = getBooleanCompat("updateBackgroundDownload", true)
+        set(value) {
+            putBoolean("updateBackgroundDownload", value)
         }
 
     /**

@@ -14,6 +14,7 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
 import kotlinx.coroutines.CoroutineScope
 import splitties.init.appCtx
+import java.net.URI
 
 @Keep
 @Suppress("unused")
@@ -141,4 +142,19 @@ internal fun updateMirrorPrefixes(): List<String> {
         ?.map { if (it.endsWith("/")) it else "$it/" }
         ?.takeIf { it.isNotEmpty() }
         ?: AppUpdate.defaultMirrors
+}
+
+/**
+ * 局域网/本机代理下载：自定义镜像列表中 127.* 或 192.* 开头的 http(s) 代理地址
+ * 如 http://192.168.1.100:7893、http://127.0.0.1:7890
+ * 存在时应用更新默认静默通过该代理下载，无需任何提示
+ */
+internal fun localProxyMirror(): String? {
+    return LocalConfig.updateMirrors
+        ?.split("\n", ";")
+        ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+        ?.firstOrNull { entry ->
+            val host = runCatching { URI(entry).host }.getOrNull()
+            host != null && (host.startsWith("127.") || host.startsWith("192."))
+        }
 }
