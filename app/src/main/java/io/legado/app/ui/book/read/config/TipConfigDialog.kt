@@ -4,7 +4,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isVisible
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
@@ -73,14 +72,12 @@ class TipConfigDialog : BaseDialogFragment(R.layout.dialog_tip_config),
         upTitleFont()
         upTitleFontWeight()
         upTitleColor()
-        binding.swSplitChapterTitle.isChecked = ReadBookConfig.splitChapterTitle
         binding.dsbTitleNumberSize.progress = ReadBookConfig.titleNumberSize
         binding.dsbTitleNumberSpacing.valueFormat = {
             titleNumberSpacingFromProgress(it).toString()
         }
         binding.dsbTitleNumberSpacing.progress =
             titleNumberSpacingToProgress(ReadBookConfig.titleNumberSpacing)
-        upTitleNumberOptions()
         upTitleNumberColor()
         binding.dsbTitleTop.progress = ReadBookConfig.titleTopSpacing
         binding.dsbTitleBottom.progress = ReadBookConfig.titleBottomSpacing
@@ -128,10 +125,6 @@ class TipConfigDialog : BaseDialogFragment(R.layout.dialog_tip_config),
             -1, 0 -> tipDividerColorNames[tipDividerColor + 1]
             else -> "#${tipDividerColor.hexString}"
         }
-    }
-
-    private fun upTitleNumberOptions() {
-        binding.llTitleNumberStyle.isVisible = ReadBookConfig.splitChapterTitle
     }
 
     private fun upTitleColor() {
@@ -219,11 +212,6 @@ class TipConfigDialog : BaseDialogFragment(R.layout.dialog_tip_config),
                         .show(requireActivity())
                 }
             }
-        }
-        swSplitChapterTitle.setOnCheckedChangeListener { _, isChecked ->
-            ReadBookConfig.splitChapterTitle = isChecked
-            upTitleNumberOptions()
-            postEvent(EventBus.UP_CONFIG, arrayListOf(5))
         }
         dsbTitleNumberSize.onChanged = {
             ReadBookConfig.titleNumberSize = it

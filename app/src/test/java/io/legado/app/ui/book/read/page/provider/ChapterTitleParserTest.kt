@@ -16,14 +16,13 @@ class ChapterTitleParserTest {
     }
 
     @Test
-    fun keepsUnsupportedOrDisabledTitlesUnchanged() {
+    fun keepsUnsupportedTitlesUnchanged() {
         assertNull(split("雨夜闲谈"))
         assertNull(split("第一章"))
-        assertNull(ChapterTitleParser.split("第一章 标题", enabled = false, isVolume = false))
-        assertNull(ChapterTitleParser.split("第一章 标题", enabled = true, isVolume = true))
+        assertNull(ChapterTitleParser.split("第一章 标题", isVolume = true))
         assertNull(split("第一章\n标题"))
     }
 
     private fun split(title: String) =
-        ChapterTitleParser.split(title, enabled = true, isVolume = false)
+        ChapterTitleParser.split(title, isVolume = false)
 }

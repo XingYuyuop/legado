@@ -8,8 +8,8 @@ internal object ChapterTitleParser {
             "[\\s\\p{Zs}]+(.+)$"
     )
 
-    fun split(title: String, enabled: Boolean, isVolume: Boolean): Pair<String, String>? {
-        if (!enabled || isVolume || '\n' in title || '\r' in title) return null
+    fun split(title: String, isVolume: Boolean): Pair<String, String>? {
+        if (isVolume || '\n' in title || '\r' in title) return null
         val match = prefix.matchEntire(title) ?: return null
         val name = match.groupValues[2].trim()
         return name.takeIf { it.isNotEmpty() }?.let {

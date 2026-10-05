@@ -547,12 +547,6 @@ object ReadBookConfig {
     val titleTextColor: Int
         get() = titleColor.takeIf { it != 0 } ?: textColor
 
-    var splitChapterTitle: Boolean
-        get() = config.splitChapterTitle
-        set(value) {
-            config.splitChapterTitle = value
-        }
-
     var titleNumberSize: Int
         get() = config.titleNumberSize
         set(value) {
@@ -782,7 +776,6 @@ object ReadBookConfig {
             exportConfig.titleMode = shareConfig.titleMode
             exportConfig.titleSize = shareConfig.titleSize
             exportConfig.titleColor = shareConfig.titleColor
-            exportConfig.splitChapterTitle = shareConfig.splitChapterTitle
             exportConfig.titleNumberSize = shareConfig.titleNumberSize
             exportConfig.titleNumberColor = shareConfig.titleNumberColor
             exportConfig.titleNumberSpacing = shareConfig.titleNumberSpacing
@@ -945,7 +938,6 @@ object ReadBookConfig {
         var titleMode: Int = 0,//标题位置 0:居左 1:居中 2:隐藏 3:居右
         var titleSize: Int = 0,
         var titleColor: Int = 0,
-        var splitChapterTitle: Boolean = false,
         var titleNumberSize: Int = 0,
         var titleNumberColor: Int = 0,
         var titleNumberSpacing: Int = 0,
@@ -1288,7 +1280,6 @@ object ReadBookConfig {
             "titleMode" to titleMode,
             "titleSize" to titleSize,
             "titleColor" to titleColor,
-            "splitChapterTitle" to splitChapterTitle,
             "titleNumberSize" to titleNumberSize,
             "titleNumberColor" to titleNumberColor,
             "titleNumberSpacing" to titleNumberSpacing,

@@ -152,21 +152,11 @@
 
         </LinearLayout>
 
-        <io.legado.app.lib.theme.view.ThemeSwitch
-            android:id="@+id/sw_split_chapter_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="6dp"
-            android:text="@string/split_chapter_title"
-            tools:ignore="TouchTargetSizeCheck" />
-
         <LinearLayout
             android:id="@+id/ll_title_number_style"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:orientation="vertical">
 
             <io.legado.app.ui.widget.DetailSeekBar
                 android:id="@+id/dsb_title_number_size"

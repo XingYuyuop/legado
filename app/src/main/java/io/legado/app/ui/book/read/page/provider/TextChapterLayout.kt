@@ -160,7 +160,6 @@ class TextChapterLayout(
     }
     private val splitTitle = ChapterTitleParser.split(
         displayTitle,
-        ReadBookConfig.splitChapterTitle,
         bookChapter.isVolume
     )
     private val reviewTitleOffset = if (
