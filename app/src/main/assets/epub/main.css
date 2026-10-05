@@ -130,7 +130,7 @@ h1.head {
     font-family: "DK-HEITI",黑体,sans-serif;
     font-size: 1.2em;
     font-weight: bold;
-    color: #311a02;
+    color: #000000;
     text-indent: 0em;
     font-weight: normal;
     duokan-text-indent: 0em;
@@ -154,7 +154,7 @@ h1.head b {
     text-align: center;
     text-indent: 0em;
     duokan-text-indent: 0em;
-    color: #311a02;
+    color: #000000;
     margin: 0.5em auto;
     line-height: 140%;
 }
@@ -202,19 +202,16 @@ h2.head {
     font-family: "小标宋";
     text-align: left;
     font-weight: bold;
-    font-size: 1.1em;
-    margin: 1em 2em 2em 0;
-    color: #3f83e8;
+    font-size: 0.8em !important;
+    margin: 1em 0;
+    color: #000000;
     line-height: 140%;
 }
 
 h2.head span {
     font-family: "仿宋";
-    font-size: 0.7em;
-    background-color: #3f83e8;
-    border-radius: 9px;
-    padding: 4px;
-    color: #fff;
+    font-size: 1em !important;
+    color: #000000;
 }
 
 
@@ -236,8 +233,8 @@ img.logo {
 h1.head {
 	line-height:130%;
 	font-size:1.4em;
-	text-align: center;
-	color: #BA2213;
+	text-align: left;
+	color: #000000;
 	font-weight: bold;
 	margin-top: 2em;
 	margin-bottom: 1em;
@@ -248,10 +245,10 @@ h3 {
     font-family: "DK-HEITI",黑体,sans-serif;
     font-size: 1.1em;
     margin: 1em 0;
-    border-left: 1.2em solid #00a1e9;
+    border-left: 1.2em solid #000000;
     line-height: 120%;
     padding-left: 3px;
-	color: #00a1e9;
+	color: #000000;
 }
 h4 {
     font-family: "DK-HEITI",黑体,sans-serif;
@@ -265,7 +262,7 @@ h1.post {
     font-family: "方正小标宋_GBK","DK-XIAOBIAOSONG";
     text-align: center;
     font-size: 1.3em;
-	color: #026fca;
+	color: #000000;
     margin: 3em auto 2em auto;
 }
 .banquan {
