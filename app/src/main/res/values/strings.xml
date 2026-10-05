@@ -255,6 +255,7 @@
     <string name="beta_update_now">Update now</string>
     <string name="background_download">Background download</string>
     <string name="source_github_direct">GitHub direct</string>
+    <string name="source_lan_proxy">LAN proxy: %1$s</string>
     <string name="source_mirror">Mirror %1$s</string>
     <string name="ping_testing">testing…</string>
     <string name="ping_timeout">timeout</string>

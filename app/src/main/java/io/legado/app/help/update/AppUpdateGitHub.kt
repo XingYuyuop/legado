@@ -147,17 +147,18 @@ internal fun updateMirrorPrefixes(): List<String> {
 }
 
 /**
- * 判断镜像条目是否为局域网/本机代理地址：127.* 或 192.* 开头的 http(s) 地址
- * 如 http://192.168.1.100:7893、http://127.0.0.1:7890
+ * 判断镜像条目是否为局域网/本机代理地址：127.* 或 192.* 开头的地址
+ * 如 http://192.168.1.100:7893、http://127.0.0.1:7890、192.168.1.100:7893(无协议前缀按http处理)
  */
 internal fun isLocalProxyMirror(entry: String): Boolean {
-    val host = runCatching { URI(entry).host }.getOrNull() ?: return false
+    val normalized = if (entry.contains("://")) entry else "http://$entry"
+    val host = runCatching { URI(normalized).host }.getOrNull() ?: return false
     return host.startsWith("127.") || host.startsWith("192.")
 }
 
 /**
  * 局域网/本机代理下载：自定义镜像列表中 127.* 或 192.* 开头的 http(s) 地址
- * 存在时应用更新默认静默通过该地址下载，无需任何提示
+ * 存在时作为独立下载源显示，选中后经该地址下载
  * 同时兼容HTTP/SOCKS代理(Clash等)与URL前缀网关(gh-proxy等)，由下载器自动切换
  */
 internal fun localProxyMirror(): String? {
@@ -165,5 +166,6 @@ internal fun localProxyMirror(): String? {
         ?.split("\n", ";")
         ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
         ?.firstOrNull(::isLocalProxyMirror)
+        ?.let { if (it.contains("://")) it else "http://$it" }
         ?.trimEnd('/')
 }

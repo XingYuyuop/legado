@@ -55,7 +55,11 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         }
     }
 
-    private data class SourceItem(val label: String, val url: String)
+    private data class SourceItem(
+        val label: String,
+        val url: String,
+        val proxy: String? = null
+    )
 
     val binding by viewBinding(DialogUpdateBinding::bind)
 
@@ -63,9 +67,9 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         get() = arguments?.getBoolean("isBeta") == true
 
     private val sources = ArrayList<SourceItem>()
-    private val radioButtons = ArrayList<Pair<String, RadioButton>>()
-    private val pingViews = HashMap<String, TextView>()
-    private var selectedUrl: String? = null
+    private val radioButtons = ArrayList<Pair<SourceItem, RadioButton>>()
+    private val pingViews = HashMap<SourceItem, TextView>()
+    private var selectedItem: SourceItem? = null
     private var inAppDownloadActive = false
 
     override fun onStart() {
@@ -99,7 +103,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.btnBetaCancel.setOnClickListener { dismiss() }
         binding.btnBetaUpdate.setText(R.string.beta_update_now)
         binding.btnBetaUpdate.setOnClickListener {
-            startDownload(selectedUrl ?: arguments?.getString("url"))
+            startDownload()
         }
         binding.cbBackgroundDownload.isChecked = LocalConfig.updateBackgroundDownload
         binding.cbBackgroundDownload.setOnCheckedChangeListener { _, isChecked ->
@@ -119,8 +123,12 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                 val host = runCatching { URI(mirrorUrl).host }.getOrNull() ?: mirrorUrl
                 add(SourceItem(getString(R.string.source_mirror, host), mirrorUrl))
             }
+            // 局域网代理(127/192开头)：单独作为下载源，选中后经代理下载
+            localProxyMirror()?.let { proxy ->
+                add(SourceItem(getString(R.string.source_lan_proxy, proxy), primaryUrl, proxy))
+            }
         }
-        selectedUrl = primaryUrl
+        selectedItem = sources.firstOrNull()
         binding.sourceContainer.isVisible = true
         sources.forEach { item ->
             binding.sourceContainer.addView(createRow(item))
@@ -138,7 +146,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
             isFocusable = true
         }
         val radioButton = RadioButton(requireContext()).apply {
-            isChecked = item.url == selectedUrl
+            isChecked = item == selectedItem
             isClickable = false
         }
         val nameView = TextView(requireContext()).apply {
@@ -161,12 +169,12 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
             )
         )
         row.setOnClickListener {
-            selectedUrl = item.url
+            selectedItem = item
             radioButtons.forEach { (_, button) -> button.isChecked = false }
             radioButton.isChecked = true
         }
-        radioButtons.add(item.url to radioButton)
-        pingViews[item.url] = pingView
+        radioButtons.add(item to radioButton)
+        pingViews[item] = pingView
         return row
     }
 
@@ -178,12 +186,13 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 val start = SystemClock.elapsedRealtime()
                 val ok = runCatching {
-                    client.newCall(Request.Builder().url(item.url).head().build())
+                    // 代理条目探测代理服务本身是否可达，其余探测下载地址
+                    client.newCall(Request.Builder().url(item.proxy ?: item.url).head().build())
                         .execute().use { it.isSuccessful || it.code < 500 }
                 }.getOrDefault(false)
                 val cost = SystemClock.elapsedRealtime() - start
                 withContext(Dispatchers.Main) {
-                    pingViews[item.url]?.text =
+                    pingViews[item]?.text =
                         if (ok) "${cost}ms" else getString(R.string.ping_timeout)
                 }
             }
@@ -228,12 +237,14 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         return metadata.joinToString(" · ")
     }
 
-    private fun startDownload(url: String?) {
+    private fun startDownload() {
         val name = arguments?.getString("name")
+        val url = selectedItem?.url ?: arguments?.getString("url")
         if (url.isNullOrBlank() || name.isNullOrBlank()) return
-        val proxy = localProxyMirror()
+        // 仅当选中的是局域网代理条目时才经代理下载，其余条目(含GitHub直连)不套代理
+        val proxy = selectedItem?.proxy
         if (proxy != null || !LocalConfig.updateBackgroundDownload) {
-            // 局域网/本机代理下载 或 已关闭后台下载：应用内下载并显示进度
+            // 局域网代理下载 或 已关闭后台下载：应用内下载并显示进度
             startInAppDownload(url, name, proxy)
         } else {
             Download.start(requireContext(), url, name, isAppUpdate = true)
