@@ -252,7 +252,8 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.btnCancelDownload.setOnClickListener {
             AppUpdateDownloader.cancel()
         }
-        AppUpdateDownloader.start(url, fileName, proxy)
+        // 代理模式失败时按URL前缀网关(gh-proxy等)重试原始直连地址
+        AppUpdateDownloader.start(url, fileName, proxy, arguments?.getString("url"))
     }
 
     private fun observeDownloadState() {

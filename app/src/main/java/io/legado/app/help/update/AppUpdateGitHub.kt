@@ -134,27 +134,36 @@ internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.Upd
 
 /**
  * 更新下载镜像前缀：用户自定义优先(关于-下载镜像编辑)，留空使用默认列表
+ * 127/192开头的局域网条目按代理处理，不作为镜像前缀
  */
 internal fun updateMirrorPrefixes(): List<String> {
     return LocalConfig.updateMirrors
         ?.split("\n", ";")
         ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+        ?.filterNot(::isLocalProxyMirror)
         ?.map { if (it.endsWith("/")) it else "$it/" }
         ?.takeIf { it.isNotEmpty() }
         ?: AppUpdate.defaultMirrors
 }
 
 /**
- * 局域网/本机代理下载：自定义镜像列表中 127.* 或 192.* 开头的 http(s) 代理地址
+ * 判断镜像条目是否为局域网/本机代理地址：127.* 或 192.* 开头的 http(s) 地址
  * 如 http://192.168.1.100:7893、http://127.0.0.1:7890
- * 存在时应用更新默认静默通过该代理下载，无需任何提示
+ */
+internal fun isLocalProxyMirror(entry: String): Boolean {
+    val host = runCatching { URI(entry).host }.getOrNull() ?: return false
+    return host.startsWith("127.") || host.startsWith("192.")
+}
+
+/**
+ * 局域网/本机代理下载：自定义镜像列表中 127.* 或 192.* 开头的 http(s) 地址
+ * 存在时应用更新默认静默通过该地址下载，无需任何提示
+ * 同时兼容HTTP/SOCKS代理(Clash等)与URL前缀网关(gh-proxy等)，由下载器自动切换
  */
 internal fun localProxyMirror(): String? {
     return LocalConfig.updateMirrors
         ?.split("\n", ";")
         ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
-        ?.firstOrNull { entry ->
-            val host = runCatching { URI(entry).host }.getOrNull()
-            host != null && (host.startsWith("127.") || host.startsWith("192."))
-        }
+        ?.firstOrNull(::isLocalProxyMirror)
+        ?.trimEnd('/')
 }
