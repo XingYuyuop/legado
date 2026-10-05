@@ -353,6 +353,9 @@ object Backup {
         }
         writePreferenceSnapshot(appCtx, backupPath, "config") {
             putInt("readRecordSort", LocalConfig.getInt("readRecordSort", 0))
+            LocalConfig.updateMirrors?.takeIf { it.isNotBlank() }?.let {
+                putString("updateMirrors", it)
+            }
             preferenceSnapshot.forEach { (key, value) ->
                 if (BackupConfig.keyIsNotIgnore(key) &&
                     (!lanTransfer || key !in lanTransferIgnoredPrefKeys)

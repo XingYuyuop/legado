@@ -13,7 +13,8 @@ object AppUpdate {
         "https://ghfast.top/",
         "https://cors.isteed.cc/",
         "https://gh-proxy.com/",
-        "https://gh.llkk.cc/"
+        "https://gh.llkk.cc/",
+        "https://mirror.mikus.ink/"
     )
 
     val gitHubUpdate: AppUpdateInterface by lazy {

@@ -518,6 +518,9 @@ object Restore {
                         "readRecordSort" -> (value as? Int)?.let {
                             LocalConfig.edit().putInt(key, it.coerceIn(0, 2)).apply()
                         }
+                        "updateMirrors" -> (value as? String)?.takeIf { it.isNotBlank() }?.let {
+                            LocalConfig.updateMirrors = it
+                        }
                         PreferKey.readRecordCover,
                         PreferKey.readRecordCoverDark -> {
                             val coverPath = (value as? String)?.let {
