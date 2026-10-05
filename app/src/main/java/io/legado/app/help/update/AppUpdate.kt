@@ -6,20 +6,14 @@ import kotlinx.coroutines.CoroutineScope
 object AppUpdate {
 
     /**
-     * 默认下载镜像前缀(每项拼在下载链接前面)，本地直连实测延迟排序
+     * 默认下载镜像前缀(每项拼在下载链接前面)
      * 公共镜像失效频繁，用户可在 关于-下载镜像 里编辑替换
      */
     val defaultMirrors = listOf(
-        "https://mirror.houlang.cloud/",
-        "https://gh.ddlc.top/",
+        "https://ghfast.top/",
         "https://cors.isteed.cc/",
-        "https://github.akams.cn/",
         "https://gh-proxy.com/",
-        "https://gitproxy.click/",
-        "https://ghproxy.net/",
-        "https://ghproxy.homeboyc.cn/",
-        "https://gh.llkk.cc/",
-        "https://ghfast.top/"
+        "https://gh.llkk.cc/"
     )
 
     val gitHubUpdate: AppUpdateInterface by lazy {
