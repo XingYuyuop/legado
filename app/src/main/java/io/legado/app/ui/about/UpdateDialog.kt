@@ -123,9 +123,12 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                 val host = runCatching { URI(mirrorUrl).host }.getOrNull() ?: mirrorUrl
                 add(SourceItem(getString(R.string.source_mirror, host), mirrorUrl))
             }
-            // 局域网代理(127/192开头)：单独作为下载源，选中后经代理下载
+            // 局域网代理(127/192开头)：单独作为下载源，选中后经代理下载，显示端口号
             localProxyMirror()?.let { proxy ->
-                add(SourceItem(getString(R.string.source_lan_proxy, proxy), primaryUrl, proxy))
+                val port = runCatching { URI(proxy).port }.getOrNull()
+                    ?.takeIf { it > 0 }?.toString()
+                    ?: proxy.substringAfterLast('/')
+                add(SourceItem(getString(R.string.source_lan_proxy, port), primaryUrl, proxy))
             }
         }
         selectedItem = sources.firstOrNull()
@@ -155,7 +158,8 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
             setTextColor(requireContext().getColor(R.color.primaryText))
         }
         val pingView = TextView(requireContext()).apply {
-            text = getString(R.string.ping_testing)
+            // 前置空格与源名称(网址)隔开
+            text = " " + getString(R.string.ping_testing)
             textSize = 13f
             setTextColor(requireContext().getColor(R.color.secondaryText))
         }
@@ -193,7 +197,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                 val cost = SystemClock.elapsedRealtime() - start
                 withContext(Dispatchers.Main) {
                     pingViews[item]?.text =
-                        if (ok) "${cost}ms" else getString(R.string.ping_timeout)
+                        if (ok) " ${cost}ms" else " " + getString(R.string.ping_timeout)
                 }
             }
         }
