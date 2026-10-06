@@ -154,8 +154,8 @@ internal fun isLocalProxyMirror(entry: String): Boolean {
 
 /**
  * 局域网/本机代理下载：自定义镜像列表中所有 127.* 或 192.* 开头的 http(s) 地址
- * 每个地址在更新弹窗中作为独立下载源显示，选中后经该地址下载
- * 同时兼容HTTP/SOCKS代理(Clash等)与URL前缀网关(gh-proxy等)，由下载器自动切换
+ * 每个地址在更新弹窗中作为独立下载源显示，选中后经该代理隧道访问GitHub官方地址
+ * 仅支持标准HTTP/SOCKS代理(Clash等)，镜像前缀网关不在此列
  */
 internal fun localProxyMirrors(): List<String> {
     return LocalConfig.updateMirrors

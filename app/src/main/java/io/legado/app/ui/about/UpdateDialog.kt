@@ -137,12 +137,18 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         sources.forEach { item ->
             binding.sourceContainer.addView(createRow(item))
         }
-        // 镜像条目过多时限高可滑动，避免弹窗被撑爆
-        val maxPx = (220 * resources.displayMetrics.density).toInt()
+        // 默认全部显示，超过10个时限高为10行并开启滑动
         binding.sourceScroll.post {
-            if (binding.sourceScroll.height > maxPx) {
-                binding.sourceScroll.layoutParams?.height = maxPx
-                binding.sourceScroll.requestLayout()
+            val rows = binding.sourceContainer.childCount
+            if (rows > 10) {
+                val rowH = binding.sourceContainer.getChildAt(0).height
+                if (rowH > 0) {
+                    val maxPx = rowH * 10
+                    if (binding.sourceScroll.height > maxPx) {
+                        binding.sourceScroll.layoutParams?.height = maxPx
+                        binding.sourceScroll.requestLayout()
+                    }
+                }
             }
         }
         pingAll()
@@ -276,14 +282,11 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.btnCancelDownload.setOnClickListener {
             AppUpdateDownloader.cancel()
         }
-        // 下载方式链：选中的代理(CONNECT+前缀网关) → 镜像 → 直连，失败静默切换
+        // 下载方式链：选中的代理(Clash等标准HTTP/SOCKS代理隧道) → 镜像 → 直连，失败静默切换
         val attempts = ArrayList<AppUpdateDownloader.Attempt>()
         if (item.proxy != null) {
             localProxyMirrors().forEach { proxy ->
                 attempts.add(AppUpdateDownloader.Attempt(directUrl, proxy))
-            }
-            localProxyMirrors().forEach { proxy ->
-                attempts.add(AppUpdateDownloader.Attempt(proxy + "/" + directUrl))
             }
         } else {
             attempts.add(AppUpdateDownloader.Attempt(item.url))
