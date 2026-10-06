@@ -17,7 +17,8 @@ import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.http.okHttpClient
 import io.legado.app.help.update.AppUpdate
 import io.legado.app.help.update.AppUpdateDownloader
-import io.legado.app.help.update.localProxyMirror
+import io.legado.app.help.update.localProxyMirrors
+import io.legado.app.help.update.updateMirrorPrefixes
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.model.Download
 import io.legado.app.utils.ConvertUtils
@@ -118,13 +119,13 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         val primaryUrl = arguments?.getString("url")?.takeIf(String::isNotBlank) ?: return
         sources.apply {
             clear()
+            // 下载源实时取自 关于-下载镜像 的填写内容：直连 + 自定义镜像 + 全部局域网代理
             add(SourceItem(getString(R.string.source_github_direct), primaryUrl))
-            arguments?.getStringArrayList("mirrors").orEmpty().forEach { mirrorUrl ->
-                val host = runCatching { URI(mirrorUrl).host }.getOrNull() ?: mirrorUrl
-                add(SourceItem(getString(R.string.source_mirror, host), mirrorUrl))
+            updateMirrorPrefixes().forEach { prefix ->
+                val host = runCatching { URI(prefix).host }.getOrNull() ?: prefix
+                add(SourceItem(getString(R.string.source_mirror, host), prefix + primaryUrl))
             }
-            // 局域网代理(127/192开头)：单独作为下载源，选中后经代理下载，显示端口号
-            localProxyMirror()?.let { proxy ->
+            localProxyMirrors().forEach { proxy ->
                 val port = runCatching { URI(proxy).port }.getOrNull()
                     ?.takeIf { it > 0 }?.toString()
                     ?: proxy.substringAfterLast('/')
@@ -135,6 +136,14 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.sourceContainer.isVisible = true
         sources.forEach { item ->
             binding.sourceContainer.addView(createRow(item))
+        }
+        // 镜像条目过多时限高可滑动，避免弹窗被撑爆
+        val maxPx = (220 * resources.displayMetrics.density).toInt()
+        binding.sourceScroll.post {
+            if (binding.sourceScroll.height > maxPx) {
+                binding.sourceScroll.layoutParams?.height = maxPx
+                binding.sourceScroll.requestLayout()
+            }
         }
         pingAll()
     }
@@ -242,33 +251,53 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
     }
 
     private fun startDownload() {
+        val item = selectedItem
         val name = arguments?.getString("name")
-        val url = selectedItem?.url ?: arguments?.getString("url")
-        if (url.isNullOrBlank() || name.isNullOrBlank()) return
-        // 仅当选中的是局域网代理条目时才经代理下载，其余条目(含GitHub直连)不套代理
-        val proxy = selectedItem?.proxy
-        if (proxy != null || !LocalConfig.updateBackgroundDownload) {
-            // 局域网代理下载 或 已关闭后台下载：应用内下载并显示进度
-            startInAppDownload(url, name, proxy)
-        } else {
-            Download.start(requireContext(), url, name, isAppUpdate = true)
+        val directUrl = arguments?.getString("url")
+        if (item == null || name.isNullOrBlank() || directUrl.isNullOrBlank()) return
+        if (LocalConfig.updateBackgroundDownload && item.proxy == null) {
+            // 勾选后台下载：系统下载器静默下载，无进度显示(代理不支持系统下载器，仍走应用内)
+            Download.start(requireContext(), item.url, name, isAppUpdate = true)
             toastOnUi(R.string.download_start)
             dismiss()
+        } else {
+            // 应用内下载：显示进度、速度、大小；失败自动切换备用下载方式
+            startInAppDownload(item, name, directUrl)
         }
     }
 
-    private fun startInAppDownload(url: String, fileName: String, proxy: String?) {
+    private fun startInAppDownload(item: SourceItem, fileName: String, directUrl: String) {
         inAppDownloadActive = true
         binding.betaActions.isVisible = false
         binding.cbBackgroundDownload.isVisible = false
-        binding.sourceContainer.isVisible = false
+        binding.sourceScroll.isVisible = false
         binding.downloadProgressContainer.isVisible = true
         binding.tvDownloadState.text = getString(R.string.downloading)
         binding.btnCancelDownload.setOnClickListener {
             AppUpdateDownloader.cancel()
         }
-        // 代理模式失败时按URL前缀网关(gh-proxy等)重试原始直连地址
-        AppUpdateDownloader.start(url, fileName, proxy, arguments?.getString("url"))
+        // 下载方式链：选中的代理(CONNECT+前缀网关) → 镜像 → 直连，失败静默切换
+        val attempts = ArrayList<AppUpdateDownloader.Attempt>()
+        if (item.proxy != null) {
+            localProxyMirrors().forEach { proxy ->
+                attempts.add(AppUpdateDownloader.Attempt(directUrl, proxy))
+            }
+            localProxyMirrors().forEach { proxy ->
+                attempts.add(AppUpdateDownloader.Attempt(proxy + "/" + directUrl))
+            }
+        } else {
+            attempts.add(AppUpdateDownloader.Attempt(item.url))
+        }
+        updateMirrorPrefixes().forEach { prefix ->
+            val mirrorUrl = prefix + directUrl
+            if (attempts.none { it.url == mirrorUrl && it.proxy == null }) {
+                attempts.add(AppUpdateDownloader.Attempt(mirrorUrl))
+            }
+        }
+        if (attempts.none { it.url == directUrl && it.proxy == null }) {
+            attempts.add(AppUpdateDownloader.Attempt(directUrl))
+        }
+        AppUpdateDownloader.start(fileName, attempts.take(12))
     }
 
     private fun observeDownloadState() {
@@ -338,7 +367,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         binding.downloadProgressContainer.isVisible = false
         binding.betaActions.isVisible = true
         binding.cbBackgroundDownload.isVisible = true
-        binding.sourceContainer.isVisible = sources.isNotEmpty()
+        binding.sourceScroll.isVisible = sources.isNotEmpty()
     }
 
 }

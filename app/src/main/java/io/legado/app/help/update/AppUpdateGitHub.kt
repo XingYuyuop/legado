@@ -112,11 +112,7 @@ object AppUpdateGitHub : AppUpdate.AppUpdateInterface {
 internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.UpdateInfo {
     // 默认使用GitHub原始地址下载；镜像列表在更新对话框内展示并测速，可自由选择
     val primaryUrl = downloadUrl
-    val mirrors = if (isBeta) {
-        emptyList()
-    } else {
-        updateMirrorPrefixes().map { it + downloadUrl }.distinct()
-    }
+    val mirrors = updateMirrorPrefixes().map { it + downloadUrl }.distinct()
     return AppUpdate.UpdateInfo(
         tagName = versionName,
         updateLog = note,
@@ -133,17 +129,17 @@ internal fun AppReleaseInfo.toUpdateInfo(isBeta: Boolean = false): AppUpdate.Upd
 }
 
 /**
- * 更新下载镜像前缀：用户自定义优先(关于-下载镜像编辑)，留空使用默认列表
+ * 更新下载镜像前缀：用户自定义(关于-下载镜像编辑)时完全按填写内容(可为空)，未填写用默认列表
  * 127/192开头的局域网条目按代理处理，不作为镜像前缀
  */
 internal fun updateMirrorPrefixes(): List<String> {
-    return LocalConfig.updateMirrors
-        ?.split("\n", ";")
-        ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
-        ?.filterNot(::isLocalProxyMirror)
-        ?.map { if (it.endsWith("/")) it else "$it/" }
-        ?.takeIf { it.isNotEmpty() }
-        ?: AppUpdate.defaultMirrors
+    val custom = LocalConfig.updateMirrors?.let { raw ->
+        raw.split("\n", ";")
+            .mapNotNull { it.trim().takeIf(String::isNotBlank) }
+            .filterNot(::isLocalProxyMirror)
+            .map { if (it.endsWith("/")) it else "$it/" }
+    }
+    return custom ?: AppUpdate.defaultMirrors
 }
 
 /**
@@ -157,15 +153,17 @@ internal fun isLocalProxyMirror(entry: String): Boolean {
 }
 
 /**
- * 局域网/本机代理下载：自定义镜像列表中 127.* 或 192.* 开头的 http(s) 地址
- * 存在时作为独立下载源显示，选中后经该地址下载
+ * 局域网/本机代理下载：自定义镜像列表中所有 127.* 或 192.* 开头的 http(s) 地址
+ * 每个地址在更新弹窗中作为独立下载源显示，选中后经该地址下载
  * 同时兼容HTTP/SOCKS代理(Clash等)与URL前缀网关(gh-proxy等)，由下载器自动切换
  */
-internal fun localProxyMirror(): String? {
+internal fun localProxyMirrors(): List<String> {
     return LocalConfig.updateMirrors
         ?.split("\n", ";")
         ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
-        ?.firstOrNull(::isLocalProxyMirror)
-        ?.let { if (it.contains("://")) it else "http://$it" }
-        ?.trimEnd('/')
+        ?.filter(::isLocalProxyMirror)
+        ?.map { if (it.contains("://")) it else "http://$it" }
+        ?.map { it.trimEnd('/') }
+        ?.distinct()
+        ?: emptyList()
 }

@@ -18,10 +18,11 @@ jobs:
       - id: set-ver
         run: |
           # .github/version-override 存在时使用指定版本号（测试用），否则按时间自动生成
+          # 紧凑格式3.yyMMddHHmm，与本地打包(3.yyMMddHH)数字分段兼容，保证更新检测可比
           if [ -f .github/version-override ]; then
             echo "version=$(cat .github/version-override | tr -d '[:space:]')" >> $GITHUB_OUTPUT
           else
-            echo "version=$(date -d "8 hour" -u +3.%y.%m%d%H%M)" >> $GITHUB_OUTPUT
+            echo "version=$(date -d "8 hour" -u +3.%y%m%d%H%M)" >> $GITHUB_OUTPUT
           fi
       - id: check
         run: |

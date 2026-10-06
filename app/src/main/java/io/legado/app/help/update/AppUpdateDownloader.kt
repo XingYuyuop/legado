@@ -43,17 +43,21 @@ object AppUpdateDownloader {
         val error: String? = null,
     )
 
+    data class Attempt(
+        val url: String,
+        val proxy: String? = null
+    )
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _state = MutableStateFlow<State?>(null)
     val state: StateFlow<State?> = _state.asStateFlow()
     private var job: Job? = null
 
-    fun start(
-        url: String,
-        fileName: String,
-        proxy: String? = null,
-        proxyFallbackUrl: String? = null
-    ) {
+    /**
+     * 按下载方式链依次尝试，失败静默切换下一种方式
+     * attempts由调用方按优先级组装：选中的代理(CONNECT/前缀网关) → 镜像 → 直连
+     */
+    fun start(fileName: String, attempts: List<Attempt>) {
         job?.cancel()
         job = scope.launch {
             val dir = File(appCtx.externalFiles, "updates").apply { mkdirs() }
@@ -61,24 +65,12 @@ object AppUpdateDownloader {
             val temp = File(dir, "$fileName.part")
             try {
                 _state.value = State(Status.RUNNING, fileName)
-                // 备用地址：局域网地址按URL前缀网关拼接直连地址(gh-proxy等)
-                val fallbackUrl = if (proxy != null && !proxyFallbackUrl.isNullOrBlank()) {
-                    proxy.trimEnd('/') + "/" + proxyFallbackUrl
-                } else {
-                    null
-                }
-                val targets = buildList {
-                    add(url)
-                    if (fallbackUrl != null) {
-                        add(fallbackUrl)
-                    }
-                }
                 var lastError: Exception? = null
                 var completed = false
-                for ((index, target) in targets.withIndex()) {
+                for ((index, attempt) in attempts.withIndex()) {
                     try {
-                        val client = proxyClient(proxy, useProxy = proxy != null && index == 0)
-                        val total = downloadTo(client, target, temp, fileName)
+                        val client = proxyClient(attempt.proxy)
+                        val total = downloadTo(client, attempt.url, temp, fileName)
                         if (file.exists()) {
                             file.delete()
                         }
@@ -99,8 +91,8 @@ object AppUpdateDownloader {
                     } catch (e: Exception) {
                         lastError = e
                         temp.delete()
-                        if (index < targets.lastIndex) {
-                            // 静默切换下一模式重试
+                        if (index < attempts.lastIndex) {
+                            // 静默切换下一种下载方式
                             _state.value = State(Status.RUNNING, fileName)
                         }
                     }
@@ -119,13 +111,8 @@ object AppUpdateDownloader {
         }
     }
 
-    private fun proxyClient(proxy: String?, useProxy: Boolean): OkHttpClient {
-        val base = if (useProxy && proxy != null) {
-            getProxyClient(proxy)
-        } else {
-            getProxyClient(null)
-        }
-        return base.newBuilder()
+    private fun proxyClient(proxy: String?): OkHttpClient {
+        return getProxyClient(proxy).newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build()
