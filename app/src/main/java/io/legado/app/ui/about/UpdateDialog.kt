@@ -2,7 +2,6 @@ package io.legado.app.ui.about
 
 import android.os.Bundle
 import android.os.SystemClock
-import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
@@ -20,9 +19,7 @@ import io.legado.app.help.update.AppUpdateDownloader
 import io.legado.app.help.update.localProxyMirrors
 import io.legado.app.help.update.updateMirrorPrefixes
 import io.legado.app.lib.theme.primaryColor
-import io.legado.app.model.Download
 import io.legado.app.utils.ConvertUtils
-import io.legado.app.utils.openFileUri
 import io.legado.app.utils.openUrl
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -77,6 +74,14 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         super.onStart()
         // 高度按内容自适应，内容区占剩余空间（超出的部分在ScrollTextView内滚动）
         setLayout(0.9f, -2)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // 未开启后台下载时，退出弹窗即取消下载；开启则继续后台下载，完成后自动拉起安装
+        if (inAppDownloadActive && !LocalConfig.updateBackgroundDownload) {
+            AppUpdateDownloader.cancel()
+        }
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
@@ -261,15 +266,8 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
         val name = arguments?.getString("name")
         val directUrl = arguments?.getString("url")
         if (item == null || name.isNullOrBlank() || directUrl.isNullOrBlank()) return
-        if (LocalConfig.updateBackgroundDownload && item.proxy == null) {
-            // 勾选后台下载：系统下载器静默下载，无进度显示(代理不支持系统下载器，仍走应用内)
-            Download.start(requireContext(), item.url, name, isAppUpdate = true)
-            toastOnUi(R.string.download_start)
-            dismiss()
-        } else {
-            // 应用内下载：显示进度、速度、大小；失败自动切换备用下载方式
-            startInAppDownload(item, name, directUrl)
-        }
+        // 所有下载源(直连/镜像/代理)统一走应用内下载，显示进度、速度、大小；失败自动切换备用下载方式
+        startInAppDownload(item, name, directUrl)
     }
 
     private fun startInAppDownload(item: SourceItem, fileName: String, directUrl: String) {
@@ -312,13 +310,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
 
                     AppUpdateDownloader.Status.COMPLETED -> {
                         inAppDownloadActive = false
-                        toastOnUi(R.string.download_success)
-                        st.file?.let { file ->
-                            requireContext().openFileUri(
-                                Uri.fromFile(file),
-                                "application/vnd.android.package-archive"
-                            )
-                        }
+                        // 安装器由下载器统一拉起(含后台完成场景)
                         dismiss()
                     }
 

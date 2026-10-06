@@ -1,18 +1,24 @@
 package io.legado.app.help.update
 
+import android.net.Uri
 import android.os.SystemClock
+import io.legado.app.R
 import io.legado.app.help.http.getProxyClient
 import io.legado.app.utils.externalFiles
+import io.legado.app.utils.openFileUri
+import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import splitties.init.appCtx
@@ -100,14 +106,36 @@ object AppUpdateDownloader {
                 if (!completed) {
                     throw lastError ?: IllegalStateException("下载失败")
                 }
+                // 下载完成自动拉起安装，弹窗已关闭(后台下载)时同样生效
+                installApk(file)
+                // 状态消费完即重置，避免重开弹窗时残留
+                delay(1500)
+                if (_state.value?.status == Status.COMPLETED) {
+                    _state.value = null
+                }
             } catch (e: CancellationException) {
                 temp.delete()
-                _state.value = State(Status.CANCELED, fileName)
+                // 新一轮下载已发起时不再覆盖其状态
+                if (coroutineContext[Job] === job) {
+                    _state.value = State(Status.CANCELED, fileName)
+                }
             } catch (e: Exception) {
                 temp.delete()
-                _state.value =
-                    State(Status.FAILED, fileName, error = e.localizedMessage ?: "$e")
+                if (coroutineContext[Job] === job) {
+                    _state.value =
+                        State(Status.FAILED, fileName, error = e.localizedMessage ?: "$e")
+                }
             }
+        }
+    }
+
+    private suspend fun installApk(file: File) {
+        withContext(Dispatchers.Main) {
+            appCtx.toastOnUi(R.string.download_success)
+            appCtx.openFileUri(
+                Uri.fromFile(file),
+                "application/vnd.android.package-archive"
+            )
         }
     }
 

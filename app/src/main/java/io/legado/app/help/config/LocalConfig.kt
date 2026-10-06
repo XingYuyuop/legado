@@ -94,12 +94,11 @@ by appCtx.getSharedPreferences("local", Context.MODE_PRIVATE) {
         }
 
     /**
-     * 应用更新默认使用应用内下载，界面显示下载进度与速度
-     * 开启后改为后台下载(系统DownloadManager)，静默无进度
-     * v2键：v1曾默认true，此处重置以让应用内进度成为默认体验
+     * 应用更新默认使用后台下载：退出更新弹窗后继续下载，完成后自动拉起安装
+     * 关闭后退出弹窗即取消下载
      */
     var updateBackgroundDownload: Boolean
-        get() = getBooleanCompat("updateBackgroundDownload2", false)
+        get() = getBooleanCompat("updateBackgroundDownload2", true)
         set(value) {
             putBoolean("updateBackgroundDownload2", value)
         }
