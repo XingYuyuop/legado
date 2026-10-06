@@ -17,7 +17,12 @@ jobs:
     steps:
       - id: set-ver
         run: |
-          echo "version=$(date -d "8 hour" -u +3.%y.%m%d%H%M)" >> $GITHUB_OUTPUT
+          # .github/version-override 存在时使用指定版本号（测试用），否则按时间自动生成
+          if [ -f .github/version-override ]; then
+            echo "version=$(cat .github/version-override | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(date -d "8 hour" -u +3.%y.%m%d%H%M)" >> $GITHUB_OUTPUT
+          fi
       - id: check
         run: |
           if [ ! -z "${{ secrets.RELEASE_KEY_STORE }}" ]; then
