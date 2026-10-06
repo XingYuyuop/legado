@@ -128,7 +128,8 @@ internal fun normalizeLegadoVersionName(versionName: String): String {
         return "3.${match.groupValues[1]}.${match.groupValues[2]}"
     }
     compactVersionPattern.matchEntire(version)?.let { match ->
-        return "3.${match.groupValues[1].take(8)}"
+        // 保留全部数字（本地3.yyMMddHH、CI 3.yyMMddHHmm），保证跨格式与同时段构建可比
+        return "3.${match.groupValues[1]}"
     }
     return version
 }
