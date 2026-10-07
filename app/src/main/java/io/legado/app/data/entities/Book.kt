@@ -26,6 +26,7 @@ import io.legado.app.utils.NetworkUtils
 import io.legado.app.utils.fromJsonObject
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import java.io.File
 import java.nio.charset.Charset
 import java.time.LocalDate
 import kotlin.math.max
@@ -171,7 +172,8 @@ data class Book(
 
     fun getUnreadChapterNum() = max(simulatedTotalChapterNum() - durChapterIndex - 1, 0)
 
-    fun getDisplayCover() = persistedCoverUrl?.takeIf { it.isNotEmpty() }
+    // 本地封面文件可能被系统清理或恢复备份后失效，失效时回退到网络封面，避免全部封面空白
+    fun getDisplayCover() = persistedCoverUrl?.takeIf { it.isNotEmpty() && File(it).isFile }
         ?: customCoverUrl?.takeIf { it.isNotEmpty() }
         ?: coverUrl
 

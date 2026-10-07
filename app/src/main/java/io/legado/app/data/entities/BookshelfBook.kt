@@ -1,5 +1,7 @@
 package io.legado.app.data.entities
 
+import java.io.File
+
 data class BookshelfBook(
     val bookUrl: String,
     val origin: String,
@@ -15,8 +17,9 @@ data class BookshelfBook(
     val order: Int,
     val persistedCoverUrl: String? = null,
 ) {
+    // 本地封面文件失效时回退到网络封面，避免设备同步书架全部封面空白
     val displayCover: String?
-        get() = persistedCoverUrl?.takeIf { it.isNotEmpty() }
+        get() = persistedCoverUrl?.takeIf { it.isNotEmpty() && File(it).isFile }
             ?: customCoverUrl?.takeIf { it.isNotEmpty() }
             ?: coverUrl
 
