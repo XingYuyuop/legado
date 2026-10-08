@@ -818,6 +818,12 @@ object ReadBook : CoroutineScope by MainScope() {
     ) {
         if (!AppConfig.syncBookProgress) return
         val book = book ?: return
+        // 在调用时同步快照本地进度再比较：拉取云端进度是异步操作，期间本地 durChapterTime
+        // 可能被 saveRead 刷新为打开书籍的当前时间（initData.onFinally），若比较时才读取，
+        // 云端进度会被永远判定为更旧，导致重新打开书籍时无法自动拉取最新进度
+        val localTime = book.durChapterTime
+        val localIndex = book.durChapterIndex
+        val localPos = book.durChapterPos
         Coroutine.async {
             AppWebDav.getBookProgress(book)
         }.onError {
@@ -826,7 +832,7 @@ object ReadBook : CoroutineScope by MainScope() {
             // 按进度保存时间(durChapterTime)判断新旧
             // 此前按章节号大小判断，往回翻章节会被判定为本地进度更快，导致云端新进度被覆盖、无法回同步
             when {
-                progress == null || progress.durChapterTime < book.durChapterTime -> {
+                progress == null || progress.durChapterTime < localTime -> {
                     // 服务器没有进度或者本地进度保存时间更新，上传现有进度
                     Coroutine.async {
                         AppWebDav.uploadBookProgress(BookProgress(book), uploadSuccessAction)
@@ -834,23 +840,23 @@ object ReadBook : CoroutineScope by MainScope() {
                     }
                 }
 
-                progress.durChapterTime > book.durChapterTime -> {
+                progress.durChapterTime > localTime -> {
                     // 服务器进度保存时间更新，执行传入动作
                     newProgressAction?.invoke(progress)
                 }
 
                 else -> {
                     // 保存时间相同，按章节位置比较兜底
-                    if (progress.durChapterIndex < book.durChapterIndex ||
-                        (progress.durChapterIndex == book.durChapterIndex
-                                && progress.durChapterPos < book.durChapterPos)
+                    if (progress.durChapterIndex < localIndex ||
+                        (progress.durChapterIndex == localIndex
+                                && progress.durChapterPos < localPos)
                     ) {
                         Coroutine.async {
                             AppWebDav.uploadBookProgress(BookProgress(book), uploadSuccessAction)
                             book.update()
                         }
-                    } else if (progress.durChapterIndex > book.durChapterIndex ||
-                        progress.durChapterPos > book.durChapterPos
+                    } else if (progress.durChapterIndex > localIndex ||
+                        progress.durChapterPos > localPos
                     ) {
                         newProgressAction?.invoke(progress)
                     } else {
@@ -1841,10 +1847,13 @@ object ReadBook : CoroutineScope by MainScope() {
         val durChapterPos = durChapterPos
         val bookSource = bookSource
         val durTime = System.currentTimeMillis()
+        // 同步更新 durChapterTime：退出阅读界面(onPause)时 saveRead 之后会立即 uploadProgress，
+        // 上传在 IO 线程序列化 BookProgress，与 executor 任务读取该字段存在竞争，
+        // 异步赋值会导致上传到云端的进度时间戳早于实际保存时间
+        book.durChapterTime = durTime
         executor.execute {
             kotlin.runCatching {
                 book.lastCheckCount = 0
-                book.durChapterTime = durTime
                 val chapterChanged = book.durChapterIndex != durChapterIndex
                 book.durChapterIndex = durChapterIndex
                 book.durChapterPos = durChapterPos
