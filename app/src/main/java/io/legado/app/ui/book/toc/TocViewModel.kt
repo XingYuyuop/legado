@@ -14,7 +14,6 @@ import io.legado.app.help.book.update
 import io.legado.app.help.book.isPdf
 import io.legado.app.help.book.isEpub
 import io.legado.app.exception.NoStackTraceException
-import io.legado.app.help.globalExecutor
 import io.legado.app.model.AudioPlay
 import io.legado.app.model.ReadBook
 import io.legado.app.model.ReadManga
@@ -84,28 +83,16 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    var tocExpanded: Boolean = false
+        private set
+
     fun setTocExpanded(expanded: Boolean) {
-        val book = bookData.value ?: return
-        book.setTocExpanded(expanded)
-        updateActiveReaderBooks(book.bookUrl, expanded)
+        tocExpanded = expanded
         chapterListCallBack?.upChapterList(
             searchKey,
             resetCollapse = true,
             replaceAll = true,
         )
-        globalExecutor.execute {
-            runCatching {
-                appDb.bookDao.updateTocExpanded(book.bookUrl, expanded)
-            }.onFailure {
-                AppLog.put("保存目录展开设置失败\n${it.localizedMessage}", it)
-            }
-        }
-    }
-
-    private fun updateActiveReaderBooks(bookUrl: String, expanded: Boolean) {
-        listOf(ReadBook.book, ReadManga.book, AudioPlay.book, VideoPlay.book)
-            .filter { it?.bookUrl == bookUrl }
-            .forEach { it?.setTocExpanded(expanded) }
     }
 
     fun startChapterListSearch(newText: String?) {

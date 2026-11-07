@@ -143,8 +143,7 @@ class TocActivity : VMBaseActivity<ActivityChapterListBinding, TocViewModel>(),
             AppConfig.tocCountWords
         menu.findItem(R.id.menu_split_long_chapter)?.isChecked =
             viewModel.bookData.value?.getSplitLongChapter() == true
-        menu.findItem(R.id.menu_expand_toc)?.isChecked =
-            viewModel.bookData.value?.getTocExpanded() != false
+        menu.findItem(R.id.menu_expand_toc)?.isChecked = viewModel.tocExpanded
         return super.onMenuOpened(featureId, menu)
     }
 

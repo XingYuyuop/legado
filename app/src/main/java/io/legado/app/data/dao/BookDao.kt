@@ -348,11 +348,6 @@ interface BookDao {
     }
 
     @Transaction
-    fun updateTocExpanded(bookUrl: String, expanded: Boolean) {
-        updateReadConfigJson(bookUrl, getReadConfigJson(bookUrl).withTocExpanded(expanded))
-    }
-
-    @Transaction
     fun updateReverseToc(bookUrl: String, reversed: Boolean) {
         updateReadConfigJson(bookUrl, getReadConfigJson(bookUrl).withReadConfigProperty("reverseToc", JsonPrimitive(reversed)))
     }
@@ -440,10 +435,6 @@ internal fun String?.withAudioPlayMode(playMode: Int): String {
 
 internal fun String?.withAudioPlaySpeed(playSpeed: Float): String {
     return withAudioPlayPreference("playSpeed", playSpeed)
-}
-
-internal fun String?.withTocExpanded(expanded: Boolean): String {
-    return withReadConfigProperty("tocExpanded", JsonPrimitive(expanded))
 }
 
 private fun String?.withAudioPlayPreference(key: String, value: Number): String {

@@ -136,6 +136,7 @@ class EpubHierarchyNavigationTest {
             val identities = identities(book)
             try {
                 ActivityScenario.launch<TocActivity>(tocIntent(book)).use { scenario ->
+                    expandTocMenu()
                     await { rows()?.map { it.chapter.title } == titles }
                     assertEquals(depths, rows()!!.map { it.depth })
                     assertVisibleIndent(-1, 0); assertVisibleIndent(-2, 1); assertVisibleIndent(-3, 2)
@@ -173,6 +174,7 @@ class EpubHierarchyNavigationTest {
                     await { ReadBook.book?.bookUrl == book.bookUrl && ReadBook.curTextChapter?.isCompleted == true }
                     dismissFirstRun(reader)
                     reader.onActivity { it.openChapterList() }
+                    expandTocMenu()
                     await { rows()?.size == 10 }
                     clickNode(-9)
                     await { ReadBook.durChapterIndex == 8 && ReadBook.curTextChapter?.chapter?.url == "OEBPS/Text/09.html" }
@@ -196,6 +198,7 @@ class EpubHierarchyNavigationTest {
             appDb.bookDao.update(book)
             val identities = identities(book)
             ActivityScenario.launch<TocActivity>(tocIntent(book)).use { scenario ->
+                expandTocMenu()
                 await { rows()?.map { it.chapter.title } == listOf("Next", "Container", "First", "Second", "Alias") }
                 assertNull(rows()!![1].readingChapter)
                 assertEquals(1, rows()!![3].readingChapter!!.index)
@@ -234,7 +237,6 @@ class EpubHierarchyNavigationTest {
         val book = Book(bookUrl = file.absolutePath, originName = file.name,
             name = "EPUB ${UUID.randomUUID()}", type = BookType.local or BookType.text, charset = "UTF-8")
         book.setPageAnim(PageAnim.noAnim)
-        book.setTocExpanded(true)
         val chapters = EpubFile.getChapterList(book)
         book.totalChapterNum = chapters.size
         book.latestChapterTime = System.currentTimeMillis()
@@ -304,6 +306,18 @@ class EpubHierarchyNavigationTest {
     }
 
     private fun scrollToTop() = instrumentation.runOnMainSync { recycler()?.scrollToPosition(0) }
+    private fun expandTocMenu() = await {
+        var handled = false
+        instrumentation.runOnMainSync {
+            val activity = ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(Stage.RESUMED).filterIsInstance<TocActivity>().firstOrNull()
+                ?: return@runOnMainSync
+            val menu = PopupMenu(activity, activity.window.decorView).menu
+            activity.onCompatOptionsItemSelected(menu.add(0, R.id.menu_expand_toc, 0, "Expand"))
+            handled = true
+        }
+        handled
+    }
     private fun reverse(scenario: ActivityScenario<TocActivity>) = scenario.onActivity { activity ->
         val menu = PopupMenu(activity, activity.window.decorView).menu
         activity.onCompatOptionsItemSelected(menu.add(0, R.id.menu_reverse_toc, 0, "Reverse"))

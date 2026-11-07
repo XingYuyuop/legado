@@ -181,7 +181,7 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                 }
                 pdfOutlineLoading = false
                 if (outline.any { it.pageIndex != null }) {
-                    pdfOutlineState = PdfOutlineListState(outline, book.getTocExpanded())
+                    pdfOutlineState = PdfOutlineListState(outline, viewModel.tocExpanded)
                     binding.recyclerView.adapter = pdfOutlineAdapter
                     showPdfOutline()
                     return@launch
@@ -194,7 +194,7 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                 reverseOrder = book.getReverseToc(),
                 reverseDisplay = !book.isPdf && !book.isEpub && book.getReverseTocDisplay(),
                 resetCollapse = true,
-                defaultExpanded = book.getTocExpanded(),
+                defaultExpanded = viewModel.tocExpanded,
                 currentChapterIndex = durChapterIndex,
                 epubToc = epubToc,
             )
@@ -277,7 +277,7 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
         // Keep parsing the document when the user searches before the outline is ready.
         if (pdfOutlineLoading || epubTocLoading) return
         pdfOutlineState?.let { state ->
-            if (resetCollapse) state.setExpanded(book?.getTocExpanded() != false)
+            if (resetCollapse) state.setExpanded(viewModel.tocExpanded)
             showPdfOutline()
             return
         }
@@ -299,7 +299,7 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                         reverseOrder = reverseOrder,
                         reverseDisplay = !currentBook.isPdf && !currentBook.isEpub && currentBook.getReverseTocDisplay(),
                         resetCollapse = resetCollapse,
-                        defaultExpanded = currentBook.getTocExpanded(),
+                        defaultExpanded = viewModel.tocExpanded,
                         currentChapterIndex = durChapterIndex,
                         epubToc = epubToc,
                     )
@@ -318,7 +318,7 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                         reverseOrder = reverseOrder,
                         reverseDisplay = !currentBook.isPdf && !currentBook.isEpub && currentBook.getReverseTocDisplay(),
                         resetCollapse = resetCollapse,
-                        defaultExpanded = currentBook.getTocExpanded(),
+                        defaultExpanded = viewModel.tocExpanded,
                         currentChapterIndex = durChapterIndex,
                         epubToc = epubToc,
                     )

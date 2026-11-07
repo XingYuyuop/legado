@@ -63,7 +63,7 @@ class TocReverseNavigationTest {
 
     @Test fun reverseRetainsVolumeMembershipProloguesAndCurrentVolume() {
         val titles = listOf("Prologue 1", "Prologue 2", "Prologue 3", "Volume A", "A1", "A2", "Volume B", "B1", "B2")
-        fixture(titles, setOf(3, 6), current = 7, expanded = false).use { fixture ->
+        fixture(titles, setOf(3, 6), current = 7).use { fixture ->
             ActivityScenario.launch<TocActivity>(tocIntent(fixture.book)).use { scenario ->
                 await { rows()?.map { it.chapter.title } == listOf("Prologue 1", "Prologue 2", "Prologue 3", "Volume A", "Volume B", "B1", "B2") }
                 reverse()
@@ -186,14 +186,12 @@ class TocReverseNavigationTest {
         }
     }
 
-    private fun fixture(titles: List<String>, volumes: Set<Int> = emptySet(), current: Int = 1,
-                        expanded: Boolean = true): Fixture {
+    private fun fixture(titles: List<String>, volumes: Set<Int> = emptySet(), current: Int = 1): Fixture {
         val file = File.createTempFile("toc-reverse-", ".txt", context.cacheDir)
         val book = Book(bookUrl = file.absolutePath, originName = file.name, name = file.name,
             charset = "UTF-8", type = BookType.local or BookType.text, totalChapterNum = titles.size,
             durChapterIndex = current, durChapterPos = 147, durChapterTitle = titles[current]).apply {
             setPageAnim(PageAnim.noAnim)
-            setTocExpanded(expanded)
         }
         var offset = 0L
         val chapters = titles.mapIndexed { index, title ->
