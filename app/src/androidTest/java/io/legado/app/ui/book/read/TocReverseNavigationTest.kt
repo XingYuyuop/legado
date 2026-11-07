@@ -65,7 +65,7 @@ class TocReverseNavigationTest {
         val titles = listOf("Prologue 1", "Prologue 2", "Prologue 3", "Volume A", "A1", "A2", "Volume B", "B1", "B2")
         fixture(titles, setOf(3, 6), current = 7).use { fixture ->
             ActivityScenario.launch<TocActivity>(tocIntent(fixture.book)).use { scenario ->
-                await { rows()?.map { it.chapter.title } == listOf("Prologue 1", "Prologue 2", "Prologue 3", "Volume A", "Volume B", "B1", "B2") }
+                await { rows()?.map { it.chapter.title } == listOf("Prologue 1", "Prologue 2", "Prologue 3", "Volume A", "Volume B") }
                 reverse()
                 await { rows()?.firstOrNull()?.chapter?.title == "Volume B" }
                 screenshot("toc-current-volume-reversed")
@@ -73,12 +73,12 @@ class TocReverseNavigationTest {
                 assertEquals("Current chapter identity must survive reversal", "B1",
                     appDb.bookChapterDao.getChapter(current.bookUrl, current.durChapterIndex)!!.title)
                 assertEquals(147, current.durChapterPos)
-                val expected = listOf("Volume B", "B2", "B1", "Volume A", "Prologue 3", "Prologue 2", "Prologue 1")
+                val expected = listOf("Volume B", "Volume A", "Prologue 3", "Prologue 2", "Prologue 1")
                 assertEquals(expected, rows()!!.map { it.chapter.title })
                 val items = rows()!!
                 val volumeB = items.filterIsInstance<TocListItem.Volume>().single { it.chapter.title == "Volume B" }
                 assertTrue(volumeB.containsCurrentChapter)
-                assertFalse(volumeB.collapsed)
+                assertTrue(volumeB.collapsed)
                 items.filterIsInstance<TocListItem.Chapter>().forEach { item ->
                     assertEquals(item.chapter.title,
                         if (item.chapter.title.startsWith("Prologue")) null else volumeB.chapter.index,

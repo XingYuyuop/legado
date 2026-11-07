@@ -75,12 +75,11 @@ class TocListState {
         val currentPath = currentChapterIndex?.let(::currentPath).orEmpty()
         if (resetCollapse || directionChanged) {
             collapsedVolumeIndexes.clear()
-            if (!defaultExpanded) collapsedVolumeIndexes.addAll(descendantCounts.keys - currentPath)
+            if (!defaultExpanded) collapsedVolumeIndexes.addAll(descendantCounts.keys)
         } else {
             collapsedVolumeIndexes.retainAll(descendantCounts.keys)
-            collapsedVolumeIndexes.removeAll(currentPath)
             if (!defaultExpanded) {
-                collapsedVolumeIndexes.addAll(descendantCounts.keys - previousParents - currentPath)
+                collapsedVolumeIndexes.addAll(descendantCounts.keys - previousParents)
             }
         }
     }

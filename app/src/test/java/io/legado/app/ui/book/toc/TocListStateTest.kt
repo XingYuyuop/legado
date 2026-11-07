@@ -39,7 +39,7 @@ class TocListStateTest {
     }
 
     @Test
-    fun `collapsed default keeps the current volume expanded`() {
+    fun `collapsed default collapses every volume including the current one`() {
         val state = stateOf(
             listOf(
                 volume(0, "First"), chapter(1), chapter(2),
@@ -52,9 +52,9 @@ class TocListStateTest {
         val items = state.showNormal(currentChapterIndex = 4)
 
         assertTrue(state.isVolumeCollapsed(0))
-        assertFalse(state.isVolumeCollapsed(3))
+        assertTrue(state.isVolumeCollapsed(3))
         assertEquals(
-            listOf("volume:0", "volume:3", "chapter:4", "chapter:5"),
+            listOf("volume:0", "volume:3"),
             items.keys(),
         )
         assertTrue((items[1] as TocListItem.Volume).containsCurrentChapter)
@@ -214,13 +214,13 @@ class TocListStateTest {
         )
         val items = state.showNormal(currentChapterIndex = 1)
 
-        assertFalse(state.isVolumeCollapsed(0))
+        assertTrue(state.isVolumeCollapsed(0))
         assertTrue(state.isVolumeCollapsed(2))
-        assertEquals(listOf("volume:0", "chapter:1", "volume:2"), items.keys())
+        assertEquals(listOf("volume:0", "volume:2"), items.keys())
     }
 
     @Test
-    fun `refresh expands the volume containing the current chapter`() {
+    fun `refresh preserves manual expansion instead of revealing the current chapter`() {
         val chapters = listOf(
             volume(0, "First"), chapter(1),
             volume(2, "Second"), chapter(3),
@@ -230,9 +230,10 @@ class TocListStateTest {
             defaultExpanded = false,
             currentChapterIndex = 1,
         )
+        assertTrue(state.isVolumeCollapsed(0))
         assertTrue(state.isVolumeCollapsed(2))
         assertTrue(state.toggleVolume(0))
-        assertTrue(state.isVolumeCollapsed(0))
+        assertFalse(state.isVolumeCollapsed(0))
 
         state.setFullChapters(
             chapters,
@@ -242,8 +243,8 @@ class TocListStateTest {
             currentChapterIndex = 3,
         )
 
-        assertFalse(state.isVolumeCollapsed(2))
-        assertTrue(state.isVolumeCollapsed(0))
+        assertFalse(state.isVolumeCollapsed(0))
+        assertTrue(state.isVolumeCollapsed(2))
     }
 
     @Test

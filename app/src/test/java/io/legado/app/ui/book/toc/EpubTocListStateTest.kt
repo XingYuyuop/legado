@@ -47,13 +47,13 @@ class EpubTocListStateTest {
     }
 
     @Test
-    fun collapsedDefaultRevealsCurrentPathAndKeepsOtherBranchesClosed() {
+    fun collapsedDefaultCollapsesEveryBranchIncludingTheCurrentOne() {
         val state = state(expanded = false)
-        assertFalse(state.isVolumeCollapsed(-1))
-        assertFalse(state.isVolumeCollapsed(-2))
+        assertTrue(state.isVolumeCollapsed(-1))
+        assertTrue(state.isVolumeCollapsed(-2))
         assertTrue(state.isVolumeCollapsed(-4))
         assertTrue(state.isVolumeCollapsed(-7))
-        assertEquals(listOf(0, 1, 2, 3, 5, 6, 8, 9), state.showNormal(2).map { it.readingChapter!!.index })
+        assertEquals(listOf(0, 3, 5, 6, 8, 9), state.showNormal(2).map { it.readingChapter!!.index })
     }
 
     @Test

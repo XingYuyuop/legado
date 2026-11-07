@@ -34,6 +34,9 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
     var highlightCallBack: HighlightCallBack? = null
     var searchKey: String? = null
 
+    var tocExpanded: Boolean = false
+        private set
+
     fun initBook(bookUrl: String) {
         this.bookUrl = bookUrl
         execute {
@@ -82,9 +85,6 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
             it?.let(success)
         }
     }
-
-    var tocExpanded: Boolean = false
-        private set
 
     fun setTocExpanded(expanded: Boolean) {
         tocExpanded = expanded
