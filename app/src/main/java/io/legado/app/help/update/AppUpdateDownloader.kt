@@ -1,8 +1,16 @@
 package io.legado.app.help.update
 
+import android.app.PendingIntent
+import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.FileProvider
 import io.legado.app.R
+import io.legado.app.constant.AppConst
+import io.legado.app.constant.NotificationId
+import io.legado.app.help.LifecycleHelp
 import io.legado.app.help.http.getProxyClient
 import io.legado.app.utils.externalFiles
 import io.legado.app.utils.openFileUri
@@ -132,9 +140,42 @@ object AppUpdateDownloader {
     private suspend fun installApk(file: File) {
         withContext(Dispatchers.Main) {
             appCtx.toastOnUi(R.string.download_success)
-            appCtx.openFileUri(
-                Uri.fromFile(file),
+            if (LifecycleHelp.getTopActivity() != null) {
+                appCtx.openFileUri(
+                    Uri.fromFile(file),
+                    "application/vnd.android.package-archive"
+                )
+            } else {
+                // 应用在后台时无法直接拉起安装界面，发通知，点击即弹出安装
+                notifyInstall(file)
+            }
+        }
+    }
+
+    private fun notifyInstall(file: File) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            setDataAndType(
+                FileProvider.getUriForFile(appCtx, AppConst.authority, file),
                 "application/vnd.android.package-archive"
+            )
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            appCtx,
+            NotificationId.AppUpdateInstall,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        runCatching {
+            NotificationManagerCompat.from(appCtx).notify(
+                NotificationId.AppUpdateInstall,
+                NotificationCompat.Builder(appCtx, AppConst.channelIdDownload)
+                    .setSmallIcon(R.drawable.ic_download)
+                    .setContentTitle(appCtx.getString(R.string.download_success))
+                    .setContentText(file.name)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .build()
             )
         }
     }

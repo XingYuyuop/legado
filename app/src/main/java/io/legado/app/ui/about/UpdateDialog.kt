@@ -311,7 +311,10 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
                     AppUpdateDownloader.Status.COMPLETED -> {
                         inAppDownloadActive = false
                         // 安装器由下载器统一拉起(含后台完成场景)
-                        dismiss()
+                        // 退到后台时宿主状态已保存，dismiss() 会抛异常导致闪退，须用 allowStateLoss
+                        if (isAdded) {
+                            dismissAllowingStateLoss()
+                        }
                     }
 
                     AppUpdateDownloader.Status.FAILED -> {
