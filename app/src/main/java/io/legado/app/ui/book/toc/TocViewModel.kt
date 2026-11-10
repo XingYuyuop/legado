@@ -137,6 +137,34 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
                 chapter.index = chapter.index - 1
             }
             appDb.bookChapterDao.update(*chapters.filter { it.index > index - 1 }.toTypedArray())
+            // 同步书籍章节总数与进度索引，否则阅读界面仍按旧的章节列表展示
+            val book = appDb.bookDao.getBook(bookUrl)?.apply {
+                if (totalChapterNum > 0) totalChapterNum -= 1
+                if (index < durChapterIndex) durChapterIndex -= 1
+            } ?: return@execute
+            appDb.bookDao.update(book)
+            bookData.postValue(book)
+            // 阅读界面立即生效
+            if (ReadBook.book?.bookUrl == bookUrl) {
+                if (index < ReadBook.durChapterIndex) {
+                    ReadBook.durChapterIndex -= 1
+                } else if (index == ReadBook.durChapterIndex) {
+                    ReadBook.durChapterPos = 0
+                }
+                ReadBook.onChapterListUpdated(book)
+            }
+            if (ReadManga.book?.bookUrl == bookUrl) {
+                if (index < ReadManga.durChapterIndex) {
+                    ReadManga.durChapterIndex -= 1
+                }
+                ReadManga.onChapterListUpdated(book)
+            }
+            if (AudioPlay.book?.bookUrl == bookUrl) {
+                if (index < AudioPlay.durChapterIndex) {
+                    AudioPlay.durChapterIndex -= 1
+                }
+                AudioPlay.upData(book, true)
+            }
         }.onSuccess {
             success()
         }
