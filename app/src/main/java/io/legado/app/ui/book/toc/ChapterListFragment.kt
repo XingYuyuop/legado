@@ -556,7 +556,8 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                 .setPositiveButton("确定") { _, _ ->
                     viewModel.deleteChapter(bookChapter.bookUrl, bookChapter.index) {
                         lifecycleScope.launch {
-                            upChapterList(viewModel.searchKey)
+                            // resetCollapse=true 强制重新查询数据库，否则沿用缓存的旧目录
+                            upChapterList(viewModel.searchKey, resetCollapse = true)
                         }
                     }
                 }
@@ -579,7 +580,8 @@ class ChapterListFragment : VMBaseFragment<TocViewModel>(R.layout.fragment_chapt
                 .setNeutralButton("删除") { _, _ ->
                     viewModel.deleteChapter(bookChapter.bookUrl, bookChapter.index) {
                         lifecycleScope.launch {
-                            upChapterList(viewModel.searchKey)
+                            // resetCollapse=true 强制重新查询数据库，否则沿用缓存的旧目录
+                            upChapterList(viewModel.searchKey, resetCollapse = true)
                         }
                     }
                 }

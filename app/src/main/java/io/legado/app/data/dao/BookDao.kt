@@ -357,6 +357,11 @@ interface BookDao {
         updateReadConfigJson(bookUrl, getReadConfigJson(bookUrl).withReadConfigProperty("reverseTocDisplay", JsonPrimitive(reversed)))
     }
 
+    @Transaction
+    fun updateTocExpanded(bookUrl: String, expanded: Boolean) {
+        updateReadConfigJson(bookUrl, getReadConfigJson(bookUrl).withReadConfigProperty("tocExpanded", JsonPrimitive(expanded)))
+    }
+
     @Delete
     fun deleteRows(vararg book: Book)
 

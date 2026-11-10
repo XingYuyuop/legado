@@ -219,6 +219,12 @@ data class Book(
 
     fun getReverseTocDisplay(): Boolean = config.reverseTocDisplay
 
+    fun setTocExpanded(expanded: Boolean) {
+        config.tocExpanded = expanded
+    }
+
+    fun getTocExpanded(): Boolean = config.tocExpanded
+
     fun setUseReplaceRule(useReplaceRule: Boolean) {
         config.useReplaceRule = useReplaceRule
     }
@@ -494,6 +500,7 @@ data class Book(
     data class ReadConfig(
         var reverseToc: Boolean = false,
         var reverseTocDisplay: Boolean = false,
+        var tocExpanded: Boolean = false,
         var pageAnim: Int? = null,
         var reSegment: Boolean = false,
         var imageStyle: String? = null,
