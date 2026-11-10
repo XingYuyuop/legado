@@ -132,36 +132,48 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
     fun deleteChapter(bookUrl: String, index: Int, success: () -> Unit) {
         execute {
             val chapters = appDb.bookChapterDao.getChapterList(bookUrl)
+            val deleted = chapters.firstOrNull { it.index == index } ?: return@execute
+            val next = chapters.firstOrNull { it.index == index + 1 }
+            // TXT/EPUB解析会为同名标题生成卷行，子章节删除后留下空卷，一并删除
+            val prevVolume = chapters.firstOrNull { it.index == index - 1 }?.takeIf {
+                it.isVolume && it.title == deleted.title && (next == null || next.isVolume)
+            }
+            val removeCount = if (prevVolume != null) 2 else 1
             appDb.bookChapterDao.delChapter(bookUrl, index)
+            prevVolume?.let {
+                appDb.bookChapterDao.delChapter(bookUrl, it.index)
+            }
             chapters.filter { it.index > index }.forEach { chapter ->
-                chapter.index = chapter.index - 1
+                chapter.index = chapter.index - removeCount
             }
             appDb.bookChapterDao.update(*chapters.filter { it.index > index - 1 }.toTypedArray())
             // 同步书籍章节总数与进度索引，否则阅读界面仍按旧的章节列表展示
             val book = appDb.bookDao.getBook(bookUrl)?.apply {
-                if (totalChapterNum > 0) totalChapterNum -= 1
-                if (index < durChapterIndex) durChapterIndex -= 1
+                if (totalChapterNum >= removeCount) totalChapterNum -= removeCount
+                if (durChapterIndex > index) durChapterIndex -= removeCount
             } ?: return@execute
             appDb.bookDao.update(book)
             bookData.postValue(book)
             // 阅读界面立即生效
             if (ReadBook.book?.bookUrl == bookUrl) {
-                if (index < ReadBook.durChapterIndex) {
-                    ReadBook.durChapterIndex -= 1
-                } else if (index == ReadBook.durChapterIndex) {
+                if (ReadBook.durChapterIndex > index) {
+                    ReadBook.durChapterIndex -= removeCount
+                } else if (ReadBook.durChapterIndex == index ||
+                    (prevVolume != null && ReadBook.durChapterIndex == index - 1)
+                ) {
                     ReadBook.durChapterPos = 0
                 }
                 ReadBook.onChapterListUpdated(book)
             }
             if (ReadManga.book?.bookUrl == bookUrl) {
-                if (index < ReadManga.durChapterIndex) {
-                    ReadManga.durChapterIndex -= 1
+                if (ReadManga.durChapterIndex > index) {
+                    ReadManga.durChapterIndex -= removeCount
                 }
                 ReadManga.onChapterListUpdated(book)
             }
             if (AudioPlay.book?.bookUrl == bookUrl) {
-                if (index < AudioPlay.durChapterIndex) {
-                    AudioPlay.durChapterIndex -= 1
+                if (AudioPlay.durChapterIndex > index) {
+                    AudioPlay.durChapterIndex -= removeCount
                 }
                 AudioPlay.upData(book, true)
             }

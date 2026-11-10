@@ -72,6 +72,14 @@ class TocListState {
                 }
             }
         }
+        // 过滤空的卷条目：章节删除后残留的同名卷行、EPUB中仅剩导航的空节点
+        val emptyVolumeIndexes = nodes.asSequence()
+            .filter { it.chapter.isVolume && (descendantCounts[it.chapter.index] ?: 0) == 0 }
+            .mapTo(hashSetOf()) { it.chapter.index }
+        if (emptyVolumeIndexes.isNotEmpty()) {
+            nodes = nodes.filterNot { it.chapter.index in emptyVolumeIndexes }
+            byIndex = nodes.associateBy { it.chapter.index }
+        }
         val currentPath = currentChapterIndex?.let(::currentPath).orEmpty()
         if (resetCollapse || directionChanged) {
             collapsedVolumeIndexes.clear()
