@@ -315,7 +315,8 @@ class ChapterListAdapter(context: Context, val callback: Callback) :
         holder.itemView.setOnLongClickListener {
             getItem(holder.layoutPosition)?.let { item ->
                 if (callback.isLocalBook) {
-                    callback.showChapterOperationDialog(item.chapter)
+                    // EPUB显示节点的index是导航id的负数映射，须传数据库章节(readingChapter)才能正确删除
+                    callback.showChapterOperationDialog(item.readingChapter ?: item.chapter)
                 } else {
                     context.longToastOnUi(getDisplayTitle(item))
                 }

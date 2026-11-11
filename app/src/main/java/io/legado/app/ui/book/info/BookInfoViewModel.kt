@@ -292,13 +292,17 @@ class BookInfoViewModel(application: Application) : BaseViewModel(application) {
     ) {
         if (book.isLocal) {
             execute(scope) {
-                LocalBook.getChapterList(book).let {
-                    book.update()
+                LocalBook.getChapterList(book).let { chapters ->
+                    val durUrl = appDb.bookChapterDao.getChapter(book.bookUrl, book.durChapterIndex)?.url
+                    val toc = book.filterDeletedToc(chapters)
+                    book.totalChapterNum = toc.size
+                    book.remapDurChapterIndex(durUrl, toc)
                     appDb.bookChapterDao.delByBook(book.bookUrl)
-                    appDb.bookChapterDao.insert(*it.toTypedArray())
+                    appDb.bookChapterDao.insert(*toc.toTypedArray())
+                    book.update()
                     ReadBook.onChapterListUpdated(book)
                     bookData.postValue(book)
-                    chapterListData.postValue(it)
+                    chapterListData.postValue(toc)
                 }
             }.onError {
                 chapterListData.postValue(chapterListData.value.orEmpty())

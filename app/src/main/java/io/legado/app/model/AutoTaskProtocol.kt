@@ -217,6 +217,7 @@ object AutoTaskProtocol {
     private suspend fun refreshBookToc(book: Book): List<BookChapter> {
         val coroutineContext = currentCoroutineContext()
         coroutineContext.ensureActive()
+        val durUrl = appDb.bookChapterDao.getChapter(book.bookUrl, book.durChapterIndex)?.url
         val chapters = if (book.isLocal) {
             LocalBook.getChapterList(book)
         } else {
@@ -228,7 +229,9 @@ object AutoTaskProtocol {
                 coroutineContext.ensureActive()
             }
             WebBook.getChapterListAwait(bookSource, book).getOrThrow()
-        }
+        }.let { book.filterDeletedToc(it) }
+        book.totalChapterNum = chapters.size
+        book.remapDurChapterIndex(durUrl, chapters)
         coroutineContext.ensureActive()
         appDb.runInTransaction {
             appDb.bookChapterDao.delByBook(book.bookUrl)

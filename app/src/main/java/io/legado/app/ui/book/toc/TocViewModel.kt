@@ -51,9 +51,13 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
     fun upBookTocRule(book: Book, complete: (Throwable?) -> Unit) {
         execute {
             book.update()
-            LocalBook.getChapterList(book).let {
+            LocalBook.getChapterList(book).let { chapters ->
+                val durUrl = appDb.bookChapterDao.getChapter(book.bookUrl, book.durChapterIndex)?.url
+                val toc = book.filterDeletedToc(chapters)
+                book.totalChapterNum = toc.size
+                book.remapDurChapterIndex(durUrl, toc)
                 appDb.bookChapterDao.delByBook(book.bookUrl)
-                appDb.bookChapterDao.insert(*it.toTypedArray())
+                appDb.bookChapterDao.insert(*toc.toTypedArray())
                 book.update()
                 ReadBook.onChapterListUpdated(book)
                 bookData.postValue(book)
@@ -139,6 +143,12 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
                 it.isVolume && it.title == deleted.title && (next == null || next.isVolume)
             }
             val removeCount = if (prevVolume != null) 2 else 1
+            // 记录删除的章节url，使删除在目录重新解析(自动更新/换规则)后仍然生效
+            val book = appDb.bookDao.getBook(bookUrl) ?: return@execute
+            book.addDeletedTocUrls(buildList {
+                add(deleted.url)
+                prevVolume?.let { add(it.url) }
+            })
             appDb.bookChapterDao.delChapter(bookUrl, index)
             prevVolume?.let {
                 appDb.bookChapterDao.delChapter(bookUrl, it.index)
@@ -148,10 +158,10 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
             }
             appDb.bookChapterDao.update(*chapters.filter { it.index > index - 1 }.toTypedArray())
             // 同步书籍章节总数与进度索引，否则阅读界面仍按旧的章节列表展示
-            val book = appDb.bookDao.getBook(bookUrl)?.apply {
+            book.apply {
                 if (totalChapterNum >= removeCount) totalChapterNum -= removeCount
                 if (durChapterIndex > index) durChapterIndex -= removeCount
-            } ?: return@execute
+            }
             appDb.bookDao.update(book)
             bookData.postValue(book)
             // 阅读界面立即生效

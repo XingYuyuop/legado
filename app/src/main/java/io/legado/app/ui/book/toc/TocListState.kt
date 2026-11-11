@@ -65,13 +65,7 @@ class TocListState {
             }
         }
         byIndex = nodes.associateBy { it.chapter.index }
-        descendantCounts = mutableMapOf<Int, Int>().apply {
-            nodes.asReversed().forEach { node ->
-                node.parentIndex?.let { parent ->
-                    this[parent] = (this[parent] ?: 0) + 1 + (this[node.chapter.index] ?: 0)
-                }
-            }
-        }
+        descendantCounts = buildDescendantCounts(nodes)
         // 过滤空的卷条目：章节删除后残留的同名卷行、EPUB中仅剩导航的空节点
         val emptyVolumeIndexes = nodes.asSequence()
             .filter { it.chapter.isVolume && (descendantCounts[it.chapter.index] ?: 0) == 0 }
@@ -79,6 +73,8 @@ class TocListState {
         if (emptyVolumeIndexes.isNotEmpty()) {
             nodes = nodes.filterNot { it.chapter.index in emptyVolumeIndexes }
             byIndex = nodes.associateBy { it.chapter.index }
+            // 重算子孙章节数，使卷计数不包含被过滤的空节点
+            descendantCounts = buildDescendantCounts(nodes)
         }
         val currentPath = currentChapterIndex?.let(::currentPath).orEmpty()
         if (resetCollapse || directionChanged) {
@@ -91,6 +87,15 @@ class TocListState {
             }
         }
     }
+
+    private fun buildDescendantCounts(nodes: List<Node>): MutableMap<Int, Int> =
+        mutableMapOf<Int, Int>().apply {
+            nodes.asReversed().forEach { node ->
+                node.parentIndex?.let { parent ->
+                    this[parent] = (this[parent] ?: 0) + 1 + (this[node.chapter.index] ?: 0)
+                }
+            }
+        }
 
     fun showNormal(currentChapterIndex: Int): List<TocListItem> {
         val hidden = hashSetOf<Int>()

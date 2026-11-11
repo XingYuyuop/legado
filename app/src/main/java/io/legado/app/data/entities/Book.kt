@@ -225,6 +225,32 @@ data class Book(
 
     fun getTocExpanded(): Boolean = config.tocExpanded
 
+    /** 记录用户删除的章节url，使删除在目录重新解析后仍然生效 */
+    fun addDeletedTocUrls(urls: Collection<String>) {
+        val set = config.deletedTocUrls
+        urls.filter { it.isNotBlank() }.forEach { if (!set.contains(it)) set.add(it) }
+    }
+
+    /** 过滤用户已删除的章节并重新编号，用于目录重新解析时保持删除状态 */
+    fun filterDeletedToc(chapters: List<BookChapter>): List<BookChapter> {
+        if (config.deletedTocUrls.isEmpty()) return chapters
+        val deleted = config.deletedTocUrls.toSet()
+        val filtered = chapters.filterNot { it.url in deleted }
+        filtered.forEachIndexed { index, chapter -> chapter.index = index }
+        return filtered
+    }
+
+    /** 按url将阅读进度映射到重解析后的新索引 */
+    fun remapDurChapterIndex(oldDurUrl: String?, toc: List<BookChapter>) {
+        if (oldDurUrl.isNullOrBlank()) return
+        val newIndex = toc.indexOfFirst { it.url == oldDurUrl }
+        if (newIndex >= 0) {
+            durChapterIndex = newIndex
+        } else if (durChapterIndex >= toc.size) {
+            durChapterIndex = toc.size - 1
+        }
+    }
+
     fun setUseReplaceRule(useReplaceRule: Boolean) {
         config.useReplaceRule = useReplaceRule
     }
@@ -501,6 +527,7 @@ data class Book(
         var reverseToc: Boolean = false,
         var reverseTocDisplay: Boolean = false,
         var tocExpanded: Boolean = false,
+        var deletedTocUrls: MutableList<String> = mutableListOf(),
         var pageAnim: Int? = null,
         var reSegment: Boolean = false,
         var imageStyle: String? = null,
