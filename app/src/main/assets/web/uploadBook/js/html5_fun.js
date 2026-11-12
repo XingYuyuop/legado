@@ -4,12 +4,10 @@
 	var isDragOver		= false;//拖拽触发点
 	var fileNumber		= -1; //上传文件编号
 	var fileNumberPex	= "zyFileUpload_"; //编号前缀
-	var currUploadfile  = {}; //当前上传的文件对象
-	
+
 	var uploadQueue		= [];//上传队列集合
-	var isUploading		= false;//是否正在上传
-	
-	var XHR = null;
+	var MAX_CONCURRENT	= 3;//最大同时上传数
+	var uploadingFiles	= {};//正在上传的文件集合 {id: {file, xhr}}
 	
 (function(isSupportFileUpload){
 	
@@ -95,8 +93,8 @@
 			}			
 		}
 
-		//拿出第一个，进行上传
-		if(!isUploading && uploadQueue.length>0) uploadFiles(uploadQueue.shift());
+		//开始上传
+		nextUpload();
 
 		//清空input内容，防止两次上传文件一样，change事件不触发
 		document.getElementById('click').value = '';
@@ -126,67 +124,64 @@
 
 
 
-	function uploadFiles(file){
-		//正在上传
-		isUploading = true;
-		//设置上传的数据
-//        var reader = new FileReader();
-//        reader.readAsDataURL(file);
-//        reader.onload = function (e) {
-//            var data = e.target.result;
-            var fd = new FormData();
-            fd.append("fileName", file.name);
-            fd.append("fileData", file);
-            //设置当前的上传对象
-            currUploadfile = file;
-            var request = new XMLHttpRequest();
-            var finished = false;
-            XHR = request;
-
-            function finishUpload(success){
-                if(finished){
-                    return;
-                }
-                finished = true;
-                if(success){
-                    uploadSuccess(file, {}, request.status);
-                }else{
-                    uploadError(file);
-                }
-                nextUpload();
-            }
-
-            request.upload.addEventListener("progress", function(evt){
-                uploadProgress(file, evt.loaded || evt.position, evt.total);
-            }, false);
-            request.upload.addEventListener("error", function(){
-                finishUpload(false);
-            }, false);
-            request.upload.addEventListener("abort", function(){
-                finishUpload(false);
-            }, false);
-            request.onreadystatechange = function() {
-                if(request.readyState == 4){
-                    finishUpload(request.status == 200);
-                }
-            };
-            request.open("POST", config.url);
-    //		XHR.setRequestHeader("Content-Type","application/octet-stream");
-            request.send(fd);
-//		};
-	}
-	
-	//进行下一个上传
+	//取队列中的文件开始上传，直到占满并发数
 	function nextUpload(){
-		isUploading = false;
-		if(uploadQueue.length>0){
-			 uploadFiles(uploadQueue.shift());		
-		}else{
-			 //没有正在上传的了
-			 currUploadfile  = {}
+		while(uploadQueue.length>0 && countUploading() < MAX_CONCURRENT){
+			uploadFiles(uploadQueue.shift());
 		}
 	}
-	
+
+	//统计正在上传的文件数
+	function countUploading(){
+		var count = 0;
+		for(var key in uploadingFiles){
+			if(uploadingFiles.hasOwnProperty(key)) count ++;
+		}
+		return count;
+	}
+
+	function uploadFiles(file){
+		//设置上传的数据
+        var fd = new FormData();
+        fd.append("fileName", file.name);
+        fd.append("fileData", file);
+        var request = new XMLHttpRequest();
+        var finished = false;
+        //记录到正在上传集合
+        uploadingFiles[file.id] = {file: file, xhr: request};
+
+        function finishUpload(success){
+            if(finished){
+                return;
+            }
+            finished = true;
+            delete uploadingFiles[file.id];
+            if(success){
+                uploadSuccess(file, {}, request.status);
+            }else{
+                uploadError(file);
+            }
+            nextUpload();
+        }
+
+        request.upload.addEventListener("progress", function(evt){
+            uploadProgress(file, evt.loaded || evt.position, evt.total);
+        }, false);
+        request.upload.addEventListener("error", function(){
+            finishUpload(false);
+        }, false);
+        request.upload.addEventListener("abort", function(){
+            finishUpload(false);
+        }, false);
+        request.onreadystatechange = function() {
+            if(request.readyState == 4){
+                finishUpload(request.status == 200);
+            }
+        };
+        request.open("POST", config.url);
+        request.send(fd);
+	}
+
 	//上传出错误了，比如断网，
 	function uploadError(file){
 		//移除全局变量中的，上传出错的
@@ -205,24 +200,19 @@
 	var HTML5Funs = {
 		/**
 		 * 取消上传
-		 * @param string fid 文件的Id 
+		 * @param string fid 文件的Id
 		 */
 		cancelUpload : function(fid){
-			
-			var filesUploadKey = -1;
-			var uploadQueueKey = -1;
-			
-			
+
 			//从全局中删除文件
 			removeFileFromFilesUpload(filesUpload, fid)
-			
+
 			//如果是正在上传的，AJAX取消
-			if(currUploadfile.id == fid){
-				XHR.abort();
-			}else{
-				//从上传队列中移除
-				removeFileFromFilesUpload(uploadQueue, fid)
+			if(uploadingFiles[fid]){
+				uploadingFiles[fid].xhr.abort();
 			}
+			//从上传队列中移除
+			removeFileFromFilesUpload(uploadQueue, fid)
 		}
 	};
 	
