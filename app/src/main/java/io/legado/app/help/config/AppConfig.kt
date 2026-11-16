@@ -533,6 +533,12 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefBoolean(PreferKey.parallelExportBook, value)
         }
 
+    var parallelExportThreads: Int
+        get() = appCtx.getPrefInt(PreferKey.parallelExportThreads, 5).coerceIn(1, 20)
+        set(value) {
+            appCtx.putPrefInt(PreferKey.parallelExportThreads, value.coerceIn(1, 20))
+        }
+
     var changeSourceCheckAuthor: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.changeSourceCheckAuthor)
         set(value) {

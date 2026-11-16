@@ -6,7 +6,7 @@
 	var fileNumberPex	= "zyFileUpload_"; //编号前缀
 
 	var uploadQueue		= [];//上传队列集合
-	var MAX_CONCURRENT	= 3;//最大同时上传数
+	var MAX_CONCURRENT	= 10;//最大同时上传数
 	var uploadingFiles	= {};//正在上传的文件集合 {id: {file, xhr}}
 	
 (function(isSupportFileUpload){

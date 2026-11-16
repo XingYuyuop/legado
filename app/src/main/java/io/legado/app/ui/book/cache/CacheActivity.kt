@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ImageButton
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -35,6 +36,7 @@ import io.legado.app.model.CacheBook
 import io.legado.app.service.ExportBookService
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.file.HandleFileContract
+import io.legado.app.ui.widget.number.NumberPickerDialog
 import io.legado.app.ui.widget.popupActionMenu
 import io.legado.app.utils.ACache
 import io.legado.app.utils.FileDoc
@@ -126,6 +128,9 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
         menu.iconItemOnLongClick(R.id.menu_download) {
             showDownloadMenu(it)
         }
+        menu.iconItemOnLongClick(R.id.menu_parallel_export) {
+            showExportThreadsDialog()
+        }
         return super.onCompatCreateOptionsMenu(menu)
     }
 
@@ -146,6 +151,33 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
                 "download_all" -> startDownloadAll()
             }
         }
+    }
+
+    /**
+     * 多线程导出图标按钮状态：开启时常亮，关闭时半透明
+     */
+    private fun updateParallelExportMenuIcon() {
+        menu?.findItem(R.id.menu_parallel_export)?.let { item ->
+            item.icon?.mutate()?.let { icon ->
+                icon.alpha = if (AppConfig.parallelExportBook) 255 else 120
+                item.icon = icon
+            }
+            item.actionView?.findViewById<ImageButton>(R.id.item)?.setImageDrawable(item.icon)
+        }
+    }
+
+    /**
+     * 长按多线程导出按钮，自定义导出并发数(1-20)
+     */
+    private fun showExportThreadsDialog() {
+        NumberPickerDialog(this)
+            .setTitle(getString(R.string.parallel_export_threads))
+            .setMinValue(1)
+            .setMaxValue(20)
+            .setValue(AppConfig.parallelExportThreads)
+            .show {
+                AppConfig.parallelExportThreads = it
+            }
     }
 
     private fun startDownloadAfterCurrent() {
@@ -189,7 +221,11 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
         menu.findItem(R.id.menu_export_no_chapter_name)?.isChecked = AppConfig.exportNoChapterName
         menu.findItem(R.id.menu_export_web_dav)?.isChecked = AppConfig.exportToWebDav
         menu.findItem(R.id.menu_export_pics_file)?.isChecked = AppConfig.exportPictureFile
-        menu.findItem(R.id.menu_parallel_export)?.isChecked = AppConfig.parallelExportBook
+        menu.findItem(R.id.menu_parallel_export)?.apply {
+            isChecked = AppConfig.parallelExportBook
+            title = "${getString(R.string.parallel_export_book)}(${AppConfig.parallelExportThreads})"
+        }
+        updateParallelExportMenuIcon()
         menu.findItem(R.id.menu_export_remove_cover_intro)?.isChecked = AppConfig.exportRemoveCoverAndIntro
         menu.findItem(R.id.menu_export_type)?.title =
             "${getString(R.string.export_type)}(${getTypeName()})"
@@ -222,7 +258,11 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
             R.id.menu_export_remove_cover_intro -> AppConfig.exportRemoveCoverAndIntro = !item.isChecked
             R.id.menu_export_web_dav -> AppConfig.exportToWebDav = !item.isChecked
             R.id.menu_export_pics_file -> AppConfig.exportPictureFile = !item.isChecked
-            R.id.menu_parallel_export -> AppConfig.parallelExportBook = !item.isChecked
+            R.id.menu_parallel_export -> {
+                AppConfig.parallelExportBook = !item.isChecked
+                item.isChecked = AppConfig.parallelExportBook
+                updateParallelExportMenuIcon()
+            }
             R.id.menu_export_folder -> {
                 selectExportFolder(-1)
             }

@@ -165,7 +165,7 @@ class HttpServer(port: Int) : NanoHTTPD(port) {
             if (returnData == null) {
                 if (uri.endsWith("/"))
                     uri += "index.html"
-                return assetsWeb.getResponse(uri).apply {
+                return assetsWeb.getResponse(uri, session.headers["accept-encoding"]).apply {
                     addWebHeaders(session.headers["origin"], uri, isStaticAsset = true)
                 }
             }

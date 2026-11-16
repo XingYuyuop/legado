@@ -747,7 +747,7 @@ class ExportBookService : BaseService() {
         }"
         append(sanitizeExportContent(qy), null)
         val threads = if (AppConfig.parallelExportBook) {
-            AppConst.MAX_THREAD
+            AppConfig.parallelExportThreads
         } else {
             1
         }
@@ -998,7 +998,7 @@ class ExportBookService : BaseService() {
         val contentProcessor = ContentProcessor.get(book.name, book.origin)
         val replaceBook = book.toReplaceBook()
         val threads = if (AppConfig.parallelExportBook) {
-            AppConst.MAX_THREAD
+            AppConfig.parallelExportThreads
         } else {
             1
         }
