@@ -109,6 +109,7 @@ class ContentProcessor private constructor(
         replaceEnabledOverride: Boolean? = null,
         titleReplaceRulesOverride: List<ReplaceRule>? = null,
         contentReplaceRulesOverride: List<ReplaceRule>? = null,
+        disableTimeoutRule: Boolean = true,
     ): BookContent {
         var mContent = content
         var sameTitleRemoved = false
@@ -195,12 +196,20 @@ class ContentProcessor private constructor(
                             mContent = tmp
                         }
                     } catch (e: RegexTimeoutException) {
-                        item.isEnabled = false
-                        appDb.replaceRuleDao.enable(item.id, false)
-                        mContent = item.name + e.stackTraceStr
+                        if (disableTimeoutRule) {
+                            item.isEnabled = false
+                            appDb.replaceRuleDao.enable(item.id, false)
+                            mContent = item.name + e.stackTraceStr
+                        } else {
+                            //导出等场景不自动关闭规则, 抛出异常由调用方处理
+                            throw e
+                        }
                     } catch (_: CancellationException) {
                     } catch (e: Exception) {
-                        AppLog.put("替换净化: 规则 ${item.name}替换出错.\n${mContent}", e)
+                        AppLog.put(
+                            "《${book.name}》替换净化: 规则 ${item.name}替换出错.\n${mContent}",
+                            e
+                        )
                         appCtx.toastOnUi("替换净化: 规则 ${item.name}替换出错")
                     }
                 }

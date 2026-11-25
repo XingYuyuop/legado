@@ -30,6 +30,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.exception.NoStackTraceException
+import io.legado.app.exception.RegexTimeoutException
 import io.legado.app.help.AppWebDav
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
@@ -330,8 +331,17 @@ class ExportBookService : BaseService() {
                     exportMsg[book.bookUrl] = getString(R.string.export_success)
                 } catch (e: Throwable) {
                     ensureActive()
-                    exportMsg[bookUrl] = e.localizedMessage ?: "ERROR"
-                    AppLog.put("导出书籍<${book?.name ?: bookUrl}>出错", e)
+                    if (e is RegexTimeoutException && book != null) {
+                        //正则超时不自动关闭规则, 书架置顶该书并记录日志
+                        book.order = appDb.bookDao.minOrder - 1
+                        book.update()
+                        val msg = "${book.name} 导出失败，正则匹配超时"
+                        exportMsg[bookUrl] = msg
+                        AppLog.put(msg)
+                    } else {
+                        exportMsg[bookUrl] = e.localizedMessage ?: "ERROR"
+                        AppLog.put("导出书籍<${book?.name ?: bookUrl}>出错", e)
+                    }
                 } finally {
                     exportProgress.remove(bookUrl)
                     postEvent(EventBus.EXPORT_BOOK, bookUrl)
@@ -588,7 +598,8 @@ class ExportBookService : BaseService() {
                                     includeTitle = false,
                                     useReplace = useReplace,
                                     chineseConvert = false,
-                                    reSegment = false
+                                    reSegment = false,
+                                    disableTimeoutRule = false
                                 ).toString()
                             )
                             splitPdfContentBlocks(displayContent)
@@ -782,7 +793,8 @@ class ExportBookService : BaseService() {
                 includeTitle = !AppConfig.exportNoChapterName,
                 useReplace = useReplace,
                 chineseConvert = false,
-                reSegment = false
+                reSegment = false,
+                disableTimeoutRule = false
             ).toString()
         )
         if (AppConfig.exportPictureFile) {
@@ -967,6 +979,9 @@ class ExportBookService : BaseService() {
     }
 
     private fun setCover(book: Book, epubBook: EpubBook) {
+        if (AppConfig.exportRemoveCoverAndIntro) {
+            return
+        }
         kotlin.runCatching {
             val request = Glide.with(this)
                 .asFile()
@@ -984,7 +999,7 @@ class ExportBookService : BaseService() {
             }
             epubBook.coverImage = LazyResource(provider, "Images/cover.jpg")
         }.onFailure {
-            AppLog.put("获取书籍封面出错\n${it.localizedMessage}", it)
+            AppLog.put("《${book.name}》获取书籍封面出错\n${it.localizedMessage}", it)
         }
     }
 
@@ -1025,7 +1040,8 @@ class ExportBookService : BaseService() {
                     includeTitle = false,
                     useReplace = useReplace,
                     chineseConvert = false,
-                    reSegment = false
+                    reSegment = false,
+                    disableTimeoutRule = false
                 ).toString()
             )
             val title = chapter.run {
@@ -1092,6 +1108,17 @@ class ExportBookService : BaseService() {
                             val imgStream = EpubFile.getImage(book, src)
                             imgStream?.let { stream ->
                                 val imgData = stream.readBytes()
+                                //封面图片特殊引用为cover.jpeg，实际后缀取epub内封面资源的真实后缀
+                                val suffix = if (src == "cover.jpeg") {
+                                    EpubFile.getCoverImageHref(book)?.substringAfterLast('.', "")
+                                        ?.takeIf { it.isNotBlank() } ?: BookHelp.getImageSuffix(src)
+                                } else {
+                                    BookHelp.getImageSuffix(src)
+                                }
+                                val originalHref =
+                                    "${MD5Utils.md5Encode16(src)}.${suffix}"
+                                val href =
+                                    "Images/${MD5Utils.md5Encode16(src)}.${suffix}"
                                 val provider = LazyResourceProvider { _ ->
                                     imgData.inputStream()
                                 }
@@ -1123,7 +1150,9 @@ class ExportBookService : BaseService() {
         metadata.language = "zh"//数据的语言
         metadata.dates.add(Date())//数据的创建日期
         metadata.publishers.add("Legado")//数据的创建者
-        metadata.descriptions.add(book.getDisplayIntro())//书籍的简介
+        if (!AppConfig.exportRemoveCoverAndIntro) {
+            metadata.descriptions.add(book.getDisplayIntro())//书籍的简介
+        }
         //metadata.subjects.add("")//书籍的主题，在静读天下里面有使用这个分类书籍
         epubBook.metadata = metadata
     }
@@ -1238,7 +1267,8 @@ class ExportBookService : BaseService() {
                         includeTitle = false,
                         useReplace = useReplace,
                         chineseConvert = false,
-                        reSegment = false
+                        reSegment = false,
+                        disableTimeoutRule = false
                     ).toString()
                 )
                 val title = chapter.run {

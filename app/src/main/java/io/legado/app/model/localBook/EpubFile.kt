@@ -24,6 +24,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 import org.jsoup.select.Elements
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -68,7 +69,12 @@ class EpubFile(var book: Book) : AutoCloseable {
             book: Book,
             href: String
         ): InputStream? {
-            return getEFile(book).getImage(href)
+            return getEFile(book).getImageBytes(href)?.let(::ByteArrayInputStream)
+        }
+
+        @Synchronized
+        fun getCoverImageHref(book: Book): String? {
+            return getEFile(book).epubBook?.coverImage?.href
         }
 
         @Synchronized
@@ -295,6 +301,21 @@ class EpubFile(var book: Book) : AutoCloseable {
         if (href == "cover.jpeg") return epubBook?.coverImage?.inputStream
         val abHref = URLDecoder.decode(href, "UTF-8")
         return epubBook?.resources?.getByHref(abHref)?.inputStream
+    }
+
+    /**
+     * 在持有文件描述符期间将图片读取到内存，避免调用方在锁外读取zip流时
+     * 描述符被关闭导致 read failed EBADF
+     * 若读取时描述符已被关闭，重新打开文件后重试一次
+     */
+    private fun getImageBytes(href: String): ByteArray? {
+        return runCatching {
+            getImage(href)?.use { it.readBytes() }
+        }.recoverCatching {
+            close()
+            getImage(href)?.use { stream -> stream.readBytes() }
+                ?: throw IOException("Epub image not found: $href")
+        }.getOrNull()
     }
 
     private fun upBookCover(fastCheck: Boolean = false) {
