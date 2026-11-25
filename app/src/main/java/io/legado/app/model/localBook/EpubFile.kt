@@ -12,6 +12,7 @@ import io.legado.app.help.book.BookHelp
 import io.legado.app.help.config.AppConfig
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.HtmlFormatter
+import io.legado.app.utils.MD5Utils
 import io.legado.app.utils.encodeURI
 import io.legado.app.utils.isXml
 import io.legado.app.utils.printOnDebug
@@ -300,7 +301,14 @@ class EpubFile(var book: Book) : AutoCloseable {
     private fun getImage(href: String): InputStream? {
         if (href == "cover.jpeg") return epubBook?.coverImage?.inputStream
         val abHref = URLDecoder.decode(href, "UTF-8")
-        return epubBook?.resources?.getByHref(abHref)?.inputStream
+        epubBook?.resources?.getByHref(abHref)?.inputStream?.let { return it }
+        //兼容旧版本导出的epub再次导入的场景: 正文里封面图片以cover.jpeg的md5映射名引用,
+        //该路径在epub内无对应资源, 回退到封面资源
+        val fileName = href.substringAfterLast('/')
+        if (fileName.substringBeforeLast('.') == MD5Utils.md5Encode16("cover.jpeg")) {
+            return epubBook?.coverImage?.inputStream
+        }
+        return null
     }
 
     /**

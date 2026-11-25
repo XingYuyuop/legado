@@ -1105,8 +1105,11 @@ class ExportBookService : BaseService() {
                             val imgStream = EpubFile.getImage(book, src)
                             imgStream?.let { stream ->
                                 val imgData = stream.readBytes()
-                                //封面图片特殊引用为cover.jpeg，实际后缀取epub内封面资源的真实后缀
-                                val suffix = if (src == "cover.jpeg") {
+                                //封面图片可能以cover.jpeg或其md5映射名引用, 实际后缀取epub内封面资源的真实后缀
+                                val isCoverRef = src == "cover.jpeg" ||
+                                        src.substringAfterLast('/')
+                                            .substringBeforeLast('.') == MD5Utils.md5Encode16("cover.jpeg")
+                                val suffix = if (isCoverRef) {
                                     EpubFile.getCoverImageHref(book)?.substringAfterLast('.', "")
                                         ?.takeIf { it.isNotBlank() } ?: BookHelp.getImageSuffix(src)
                                 } else {
