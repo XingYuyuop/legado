@@ -38,7 +38,11 @@ public class ResourceUtil {
         String[] titleParts = title.split("\\s+", 2);
         String chapterNumber = titleParts[0];
         String chapterName = titleParts.length > 1 ? titleParts[1] : "";
-        String html = model.replace("{title}", chapterNumber + "<br /><span style=\"font-size: 0.8em;\">" + chapterName + "</span>")
+        //章节名与章号同级字号显示
+        String displayTitle = chapterName.isEmpty()
+                ? chapterNumber
+                : chapterNumber + "<br />" + chapterName;
+        String html = model.replace("{title}", displayTitle)
                 .replace("{ori_title}", title)
                 .replace("{content}", StringUtil.formatHtml(txt));
         return new Resource(html.getBytes(), href);
