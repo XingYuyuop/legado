@@ -15,6 +15,7 @@ import okhttp3.Credentials
 import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.ConcurrentHashMap
@@ -204,4 +205,29 @@ private fun okhttp3.Response.consecutiveProxyChallengeCount(): Int {
         current = current.priorResponse
     }
     return count
+}
+
+/**
+ * 跟随HTTP重定向获取最终地址, 用于添加网址时展开短链
+ * 请求失败或未发生重定向时返回原地址
+ */
+fun resolveRedirectUrl(url: String, timeoutSeconds: Long = 15): String {
+    fun newClient(): OkHttpClient {
+        return okHttpClient.newBuilder()
+            .connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
+            .callTimeout(timeoutSeconds, TimeUnit.SECONDS)
+            .build()
+    }
+    val finalUrl = runCatching {
+        newClient().newCall(Request.Builder().url(url).head().build()).execute().use { resp ->
+            val redirected = resp.request.url.toString()
+            if (resp.isSuccessful && redirected != url) redirected else null
+        }
+    }.getOrNull() ?: runCatching {
+        newClient().newCall(Request.Builder().url(url).get().build()).execute().use { resp ->
+            val redirected = resp.request.url.toString()
+            if (resp.isSuccessful && redirected != url) redirected else null
+        }
+    }.getOrNull()
+    return finalUrl ?: url
 }

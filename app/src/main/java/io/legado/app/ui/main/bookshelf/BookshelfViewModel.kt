@@ -20,6 +20,7 @@ import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.http.decompressed
 import io.legado.app.help.http.newCallResponseBody
 import io.legado.app.help.http.okHttpClient
+import io.legado.app.help.http.resolveRedirectUrl
 import io.legado.app.help.http.text
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.model.webBook.WebBook
@@ -54,7 +55,7 @@ class BookshelfViewModel(application: Application) : BaseViewModel(application) 
             }
             val urls = bookUrls.split("\n")
             for (url in urls) {
-                val bookUrl = url.trim()
+                var bookUrl = url.trim()
                 if (bookUrl.isEmpty()) continue
                 val existedBook = appDb.bookDao.getBook(bookUrl)
                 if (existedBook != null) {
@@ -66,37 +67,51 @@ class BookshelfViewModel(application: Application) : BaseViewModel(application) 
                     successCount++
                     continue
                 }
-                val baseUrl = NetworkUtils.getBaseUrl(bookUrl) ?: continue
-                var source: BookSource? = null
-                val urlMatcher = AnalyzeUrl.paramPattern.matcher(bookUrl)
-                if (urlMatcher.find()) { //指定书源
-                    val origin = GSON.fromJsonObject<AnalyzeUrl.UrlOption>(
-                        bookUrl.substring(urlMatcher.end())
-                    ).getOrNull()?.getOrigin()
-                    try {
-                        origin?.let {
-                            appDb.bookSourceDao.getBookSource(it)?.let { bs ->
-                                if (bookUrl.matches(bs.bookUrlPattern!!.toRegex())) {
-                                    source = bs
-                                }
-                            }
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
-                if (source == null) { //根据域名找书源
-                    source = appDb.bookSourceDao.getBookSourceAddBook(baseUrl)
-                }
-                if (source == null) {
-                    for (bookSource in hasBookUrlPattern) { //在所有启用的书源中查找
+                fun findSource(url: String, base: String): BookSource? {
+                    var source: BookSource? = null
+                    val urlMatcher = AnalyzeUrl.paramPattern.matcher(url)
+                    if (urlMatcher.find()) { //指定书源
+                        val origin = GSON.fromJsonObject<AnalyzeUrl.UrlOption>(
+                            url.substring(urlMatcher.end())
+                        ).getOrNull()?.getOrigin()
                         try {
-                            val bs = bookSource.getBookSource()!!
-                            if (bookUrl.matches(bs.bookUrlPattern!!.toRegex())) {
-                                source = bs
-                                break
+                            origin?.let {
+                                appDb.bookSourceDao.getBookSource(it)?.let { bs ->
+                                    if (url.matches(bs.bookUrlPattern!!.toRegex())) {
+                                        source = bs
+                                    }
+                                }
                             }
                         } catch (_: Exception) {
                         }
+                    }
+                    if (source == null) { //根据域名找书源
+                        source = appDb.bookSourceDao.getBookSourceAddBook(base)
+                    }
+                    if (source == null) {
+                        for (bookSource in hasBookUrlPattern) { //在所有启用的书源中查找
+                            try {
+                                val bs = bookSource.getBookSource()!!
+                                if (url.matches(bs.bookUrlPattern!!.toRegex())) {
+                                    source = bs
+                                    break
+                                }
+                            } catch (_: Exception) {
+                            }
+                        }
+                    }
+                    return source
+                }
+
+                var baseUrl = NetworkUtils.getBaseUrl(bookUrl) ?: continue
+                var source = findSource(bookUrl, baseUrl)
+                if (source == null) { //未匹配到书源时, 展开短链重定向后的真实地址再匹配
+                    val finalUrl = resolveRedirectUrl(bookUrl)
+                    val finalBase = NetworkUtils.getBaseUrl(finalUrl)
+                    if (finalUrl != bookUrl && finalBase != null) {
+                        bookUrl = finalUrl
+                        baseUrl = finalBase
+                        source = findSource(finalUrl, finalBase)
                     }
                 }
                 val bookSource = source ?: continue

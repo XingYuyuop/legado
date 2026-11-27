@@ -16,6 +16,7 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookSource
 import io.legado.app.databinding.DialogAddToBookshelfBinding
 import io.legado.app.exception.NoStackTraceException
+import io.legado.app.help.http.resolveRedirectUrl
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.ui.book.info.BookInfoActivity
@@ -107,39 +108,52 @@ class AddToBookshelfDialog() : BaseDialogFragment(R.layout.dialog_add_to_bookshe
 //                appDb.bookDao.getBook(bookUrl)?.let {
 //                    throw NoStackTraceException("${it.name} 已在书架")
 //                } //onFragmentCreated的时候已经判断
-                val baseUrl = NetworkUtils.getBaseUrl(bookUrl)
+                NetworkUtils.getBaseUrl(bookUrl)
                     ?: throw NoStackTraceException("书籍地址格式不对")
-                val urlMatcher = AnalyzeUrl.paramPattern.matcher(bookUrl)
-                if (urlMatcher.find()) {
-                    val origin = GSON.fromJsonObject<AnalyzeUrl.UrlOption>(
-                        bookUrl.substring(urlMatcher.end())
-                    ).getOrNull()?.getOrigin()
-                    origin?.let {
-                        val source = appDb.bookSourceDao.getBookSource(it)
-                        source?.let {
-                            getBookInfo(bookUrl, source)?.let { book ->
-                                return@execute book
+
+                suspend fun findBook(url: String): Book? {
+                    val baseUrl = NetworkUtils.getBaseUrl(url) ?: return null
+                    val urlMatcher = AnalyzeUrl.paramPattern.matcher(url)
+                    if (urlMatcher.find()) {
+                        val origin = GSON.fromJsonObject<AnalyzeUrl.UrlOption>(
+                            url.substring(urlMatcher.end())
+                        ).getOrNull()?.getOrigin()
+                        origin?.let {
+                            val source = appDb.bookSourceDao.getBookSource(it)
+                            source?.let {
+                                getBookInfo(url, it)?.let { book ->
+                                    return book
+                                }
                             }
                         }
                     }
-                }
-                appDb.bookSourceDao.getBookSourceAddBook(baseUrl)?.let { source ->
-                    getBookInfo(bookUrl, source)?.let { book ->
-                        return@execute book
-                    }
-                }
-                appDb.bookSourceDao.hasBookUrlPattern.forEach { source ->
-                    try {
-                        val bs = source.getBookSource()!!
-                        if (bookUrl.matches(bs.bookUrlPattern!!.toRegex())) {
-                            getBookInfo(bookUrl, bs)?.let { book ->
-                                return@execute book
-                            }
+                    appDb.bookSourceDao.getBookSourceAddBook(baseUrl)?.let { source ->
+                        getBookInfo(url, source)?.let { book ->
+                            return book
                         }
-                    } catch (_: Exception) {
+                    }
+                    appDb.bookSourceDao.hasBookUrlPattern.forEach { source ->
+                        try {
+                            val bs = source.getBookSource()!!
+                            if (url.matches(bs.bookUrlPattern!!.toRegex())) {
+                                getBookInfo(url, bs)?.let { book ->
+                                    return book
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                    return null
+                }
+
+                var book = findBook(bookUrl)
+                if (book == null) { //未匹配到书源时, 展开短链重定向后的真实地址再匹配
+                    val finalUrl = resolveRedirectUrl(bookUrl)
+                    if (finalUrl != bookUrl) {
+                        book = findBook(finalUrl)
                     }
                 }
-                throw NoStackTraceException("未找到匹配书源")
+                book ?: throw NoStackTraceException("未找到匹配书源")
             }.onError {
                 AppLog.put("添加书籍 $bookUrl 出错", it)
                 loadErrorLiveData.postValue(it.localizedMessage)
