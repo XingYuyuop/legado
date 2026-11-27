@@ -43,6 +43,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 
+//从文字中提取http(s)开头的网址, 排除空格与常见中英文标点
+private val urlInTextPattern = Regex("https?://[a-zA-Z0-9%\\-._~!$&'()*+,;=:@/?#\\[\\]]+")
+
 class BookshelfViewModel(application: Application) : BaseViewModel(application) {
     val addBookProgressLiveData = MutableLiveData(-1)
     var addBookJob: Coroutine<*>? = null
@@ -57,6 +60,9 @@ class BookshelfViewModel(application: Application) : BaseViewModel(application) 
             for (url in urls) {
                 var bookUrl = url.trim()
                 if (bookUrl.isEmpty()) continue
+                if (!bookUrl.isAbsUrl()) { //一行文字中混有网址时提取网址
+                    bookUrl = urlInTextPattern.find(bookUrl)?.value ?: continue
+                }
                 val existedBook = appDb.bookDao.getBook(bookUrl)
                 if (existedBook != null) {
                     val mergedGroup = mergeBookGroupForUrlAdd(existedBook.group, groupId)
